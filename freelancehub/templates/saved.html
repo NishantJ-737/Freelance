@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Saved Services — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:32px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 80% 50%,rgba(255,101,132,.15) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin-bottom:6px;">
+      <i class="bi bi-heart-fill me-2" style="color:var(--accent-2);"></i>Saved Services
+    </h1>
+    <p style="color:rgba(255,255,255,.5);font-size:14px;">{{ services|length }} saved service{{ 's' if services|length != 1 else '' }}</p>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    {% if services %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+      {% for s in services %}{% include "partials/service_card.html" %}{% endfor %}
+    </div>
+    {% else %}
+    <div class="fh-empty-state">
+      <div class="fh-empty-icon">🤍</div>
+      <div class="fh-empty-title">No saved services yet</div>
+      <div class="fh-empty-sub">Tap the heart icon on any service to save it for later</div>
+      <a href="{{ url_for('browse') }}" class="btn-primary-fh">Browse Services</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

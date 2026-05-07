@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Contact Support — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:40px 0;text-align:center;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 50%,rgba(67,217,173,.15) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:700px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div style="font-size:2.5rem;margin-bottom:12px;">🎫</div>
+    <h1 style="font-family:var(--font-display);font-size:2.2rem;font-weight:800;color:white;margin-bottom:10px;">Contact Support</h1>
+    <p style="color:rgba(255,255,255,.55);font-size:15px;">Describe your issue and we'll get back to you within 24 hours</p>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:700px;margin:0 auto;padding:0 20px;">
+
+    <!-- Quick Options -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px;">
+      {% for icon, label, desc in [("🤖","AI Chat","Instant answers"),("📚","Help Center","Browse guides"),("🎫","Support Ticket","24hr response")] %}
+      <div style="text-align:center;padding:16px 12px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:white;">
+        <div style="font-size:1.8rem;margin-bottom:6px;">{{ icon }}</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);">{{ label }}</div>
+        <div style="font-size:12px;color:var(--text-soft);">{{ desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="fh-panel">
+      <div class="fh-panel-title">📝 Submit a Support Ticket</div>
+      <form method="POST" action="{{ url_for('support') }}" style="display:flex;flex-direction:column;gap:18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="form-2col">
+          <div>
+            <label class="fh-form-label">Your Name <span style="color:var(--accent-2);">*</span></label>
+            <input type="text" name="name" class="fh-input" required value="{{ user_data.name if user_data else '' }}" placeholder="Full name" />
+          </div>
+          <div>
+            <label class="fh-form-label">Email Address <span style="color:var(--accent-2);">*</span></label>
+            <input type="email" name="email" class="fh-input" required value="{{ user_data.email if user_data else '' }}" placeholder="your@email.com" />
+          </div>
+        </div>
+
+        <div>
+          <label class="fh-form-label">Category</label>
+          <select name="category" class="fh-select">
+            {% for val, label in [
+              ("general","General Inquiry"),
+              ("payment","Payment Issue"),
+              ("order","Order Problem"),
+              ("account","Account Issue"),
+              ("seller","Seller Support"),
+              ("bug","Bug / Technical Issue"),
+              ("safety","Trust & Safety"),
+              ("other","Other")
+            ] %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="fh-form-label">Subject <span style="color:var(--accent-2);">*</span></label>
+          <input type="text" name="subject" class="fh-input" required placeholder="Brief description of your issue" />
+        </div>
+
+        <div>
+          <label class="fh-form-label">Message <span style="color:var(--accent-2);">*</span></label>
+          <textarea name="message" class="fh-textarea" required placeholder="Please describe your issue in detail. Include any order numbers, screenshots descriptions, or error messages that might help us assist you faster..." style="min-height:160px;" maxlength="3000" data-maxlength="3000"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:5px;font-size:11px;color:var(--text-soft);"><span data-counter-for="message">0 / 3000</span></div>
+        </div>
+
+        <div style="padding:14px;background:rgba(108,99,255,.06);border:1px solid rgba(108,99,255,.2);border-radius:var(--radius-md);">
+          <div style="font-size:13px;color:var(--text-mid);"><i class="bi bi-info-circle me-1" style="color:var(--accent);"></i>
+            <strong>Response times:</strong> Normal tickets: within 24 hours on weekdays. Urgent payment issues: within 6 hours. Safety reports: within 2 hours.
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary-fh" style="justify-content:center;height:50px;font-size:16px;">
+          <i class="bi bi-send me-2"></i>Submit Ticket
+        </button>
+      </form>
+    </div>
+
+    <div style="margin-top:24px;text-align:center;">
+      <p style="font-size:14px;color:var(--text-soft);">
+        <a href="{{ url_for('help_center') }}" style="color:var(--accent);">← Back to Help Center</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:support@freelancehub.in" style="color:var(--accent);">support@freelancehub.in</a>
+      </p>
+    </div>
+  </div>
+</div>
+<style>@media(max-width:600px){.form-2col{grid-template-columns:1fr !important;}}</style>
+{% endblock %}

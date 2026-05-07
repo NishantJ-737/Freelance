@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ profile_user.name }} — FreelanceHub{% endblock %}
+{% block content %}
+<div class="fh-profile-hero">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div class="fh-profile-avatar">{{ profile_user.name[0]|upper }}</div>
+      <div>
+        <div class="fh-profile-name">{{ profile_user.name }}</div>
+        <div class="fh-profile-role" style="color:{{ 'var(--gold)' if profile_user.role == 'seller' else 'var(--accent-3)' }};">
+          {{ '⭐ Top Seller' if profile_user.role == 'seller' else '🛍️ Buyer' }}
+        </div>
+        {% if profile_user.location %}
+        <div style="color:rgba(255,255,255,.5);font-size:13px;margin-top:4px;"><i class="bi bi-geo-alt me-1"></i>{{ profile_user.location }}</div>
+        {% endif %}
+        <div style="color:rgba(255,255,255,.4);font-size:12px;margin-top:4px;"><i class="bi bi-calendar3 me-1"></i>Member since {{ profile_user.created_at[:7] }}</div>
+      </div>
+      {% if avg_rating > 0 %}
+      <div style="margin-left:auto;text-align:center;">
+        <div style="font-family:var(--font-display);font-size:2.5rem;font-weight:800;color:var(--gold);">{{ "%.1f"|format(avg_rating) }}</div>
+        <div style="color:var(--gold);font-size:14px;">★★★★★</div>
+        <div style="color:rgba(255,255,255,.45);font-size:12px;">{{ review_count }} reviews</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="section-pad-sm">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;" class="profile-grid">
+      <div>
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+          <div class="fh-stat-box">
+            <div class="fh-stat-box-num">{{ services|length }}</div>
+            <div class="fh-stat-box-label">Active Services</div>
+          </div>
+          <div class="fh-stat-box">
+            <div class="fh-stat-box-num">{{ completed_orders }}</div>
+            <div class="fh-stat-box-label">Completed Orders</div>
+          </div>
+          <div class="fh-stat-box">
+            <div class="fh-stat-box-num">{{ "%.1f"|format(avg_rating) if avg_rating > 0 else "—" }}</div>
+            <div class="fh-stat-box-label">Avg. Rating</div>
+          </div>
+        </div>
+
+        <!-- Bio -->
+        {% if profile_user.bio %}
+        <div class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title">About {{ profile_user.name }}</div>
+          <p style="font-size:14.5px;color:var(--text-mid);line-height:1.75;">{{ profile_user.bio }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Services -->
+        {% if services %}
+        <div class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title">Services ({{ services|length }})</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+            {% for s in services %}{% include "partials/service_card.html" %}{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Reviews -->
+        {% if recent_reviews %}
+        <div class="fh-panel">
+          <div class="fh-panel-title">Recent Reviews</div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            {% for rv in recent_reviews %}
+            <div style="border-bottom:1px solid var(--border);padding-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                <div class="fh-seller-avatar-sm">{{ rv.reviewer_name[0]|upper }}</div>
+                <div>
+                  <div style="font-weight:600;font-size:13px;color:var(--ink);">{{ rv.reviewer_name }}</div>
+                  <div style="font-size:11px;color:var(--text-soft);">on <a href="{{ url_for('service_detail', service_id=rv.service_id) }}" style="color:var(--accent);">{{ rv.service_title | truncate(40) }}</a></div>
+                </div>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+                  <span class="fh-stars" style="font-size:13px;">{{ rv.rating | stars }}</span>
+                  <span style="font-size:11px;color:var(--text-soft);">{{ rv.created_at | time_ago }}</span>
+                </div>
+              </div>
+              {% if rv.comment %}
+              <p style="font-size:13.5px;color:var(--text-mid);line-height:1.6;margin:0;font-style:italic;">"{{ rv.comment }}"</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <div style="position:sticky;top:88px;">
+        <div class="fh-panel" style="margin-bottom:16px;text-align:center;">
+          <div class="fh-profile-avatar" style="width:72px;height:72px;font-size:28px;margin:0 auto 14px;">{{ profile_user.name[0]|upper }}</div>
+          <div style="font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--ink);margin-bottom:4px;">{{ profile_user.name }}</div>
+          {% if profile_user.role == 'seller' %}
+          <span class="fh-badge-gold" style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px;">⭐ Verified Seller</span>
+          {% endif %}
+          {% if profile_user.website %}
+          <div style="margin-top:12px;"><a href="{{ profile_user.website }}" target="_blank" style="font-size:13px;color:var(--accent);"><i class="bi bi-globe2 me-1"></i>{{ profile_user.website | truncate(30) }}</a></div>
+          {% endif %}
+        </div>
+
+        {% if current_user and current_user.id != profile_user.id and current_user.role == 'buyer' and services %}
+        <a href="{{ url_for('service_detail', service_id=services[0].id) }}" class="btn-primary-fh" style="width:100%;justify-content:center;margin-bottom:8px;">View Services</a>
+        {% endif %}
+        {% if current_user and current_user.id == profile_user.id %}
+        <a href="{{ url_for('account') }}" class="btn-outline-fh" style="width:100%;justify-content:center;">Edit Profile</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<style>@media(max-width:768px){.profile-grid{grid-template-columns:1fr !important;}}</style>
+{% endblock %}

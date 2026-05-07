@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:32px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 40% 80% at 80% 50%,rgba(255,101,132,.15) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+      <span style="font-size:22px;">🛡️</span>
+      <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;">Admin Dashboard</h1>
+    </div>
+    <p style="color:rgba(255,255,255,.5);font-size:14px;">Platform management — logged in as {{ current_user.name }}</p>
+  </div>
+</div>
+
+<div class="section-pad-sm">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px;">
+      {% for icon, bg, label, value in [
+        ("bi-people-fill","rgba(108,99,255,.1)","Total Users",stats.total_users),
+        ("bi-collection-fill","rgba(67,217,173,.1)","Total Services",stats.total_services),
+        ("bi-bag-check-fill","rgba(245,166,35,.1)","Total Orders",stats.total_orders),
+        ("bi-cash-stack","rgba(255,101,132,.1)","Revenue",stats.total_revenue | inr),
+        ("bi-hourglass-split","rgba(108,99,255,.1)","Pending Orders",stats.pending_orders),
+        ("bi-life-preserver","rgba(245,166,35,.1)","Open Tickets",stats.open_tickets)
+      ] %}
+      <div class="fh-dash-stat">
+        <div class="fh-dash-stat-icon" style="background:{{ bg }};color:var(--accent);width:40px;height:40px;font-size:18px;"><i class="bi {{ icon }}"></i></div>
+        <div><div class="fh-dash-stat-num" style="font-size:20px;">{{ value }}</div><div class="fh-dash-stat-label">{{ label }}</div></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+      {% for tab, label in [("users","👥 Users"),("services","📋 Services"),("orders","📦 Orders"),("tickets","🎫 Support")] %}
+      <button class="fh-admin-tab {{ 'active' if loop.first }}" onclick="showAdminTab('{{ tab }}')">{{ label }}</button>
+      {% endfor %}
+    </div>
+
+    <!-- Users Tab -->
+    <div id="admin-tab-users" class="fh-admin-content">
+      <div class="fh-table-wrap">
+        <table class="fh-table">
+          <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td><div style="font-weight:600;color:var(--ink);">{{ u.name }}</div></td>
+              <td style="color:var(--text-soft);font-size:13px;">{{ u.email }}</td>
+              <td><span class="fh-badge-{{ 'accent' if u.role=='seller' else 'green' }}" style="font-size:11px;">{{ u.role }}</span>{% if u.is_admin %}<span class="fh-badge-red" style="font-size:11px;margin-left:4px;">Admin</span>{% endif %}</td>
+              <td style="font-size:13px;color:var(--text-soft);">{{ u.created_at[:10] }}</td>
+              <td><span class="status-badge {{ 'status-cancelled' if u.is_banned else 'status-active' }}" style="font-size:11px;">{{ 'Banned' if u.is_banned else 'Active' }}</span></td>
+              <td>
+                {% if not u.is_admin %}
+                <form method="POST" action="{{ url_for('admin_ban_user', user_id=u.id) }}" style="display:inline;">
+                  <input type="hidden" name="action" value="{{ 'unban' if u.is_banned else 'ban' }}" />
+                  <button type="submit" class="btn-outline-fh" style="height:30px;padding:0 12px;font-size:11px;{{ 'color:var(--accent-3);border-color:var(--accent-3);' if u.is_banned else 'color:var(--accent-2);border-color:var(--accent-2);' }}" onclick="return confirm('{{ 'Unban' if u.is_banned else 'Ban' }} this user?')">{{ 'Unban' if u.is_banned else 'Ban' }}</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Services Tab -->
+    <div id="admin-tab-services" class="fh-admin-content" style="display:none;">
+      <div class="fh-table-wrap">
+        <table class="fh-table">
+          <thead><tr><th>Service</th><th>Seller</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for s in services %}
+            <tr>
+              <td><div style="font-weight:600;color:var(--ink);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div></td>
+              <td style="color:var(--text-soft);font-size:13px;">{{ s.seller_name }}</td>
+              <td style="font-size:13px;color:var(--text-soft);">{{ s.category_name }}</td>
+              <td style="font-weight:600;color:var(--ink);">{{ s.price | inr }}</td>
+              <td><span class="status-badge {{ 'status-active' if s.is_approved else 'status-cancelled' }}" style="font-size:11px;">{{ 'Live' if s.is_approved else 'Hidden' }}</span></td>
+              <td style="display:flex;gap:6px;align-items:center;">
+                <a href="{{ url_for('service_detail', service_id=s.id) }}" class="btn-outline-fh" style="height:28px;padding:0 10px;font-size:11px;"><i class="bi bi-eye"></i></a>
+                <form method="POST" action="{{ url_for('admin_toggle_service', service_id=s.id) }}" style="display:inline;">
+                  <button type="submit" class="btn-outline-fh" style="height:28px;padding:0 10px;font-size:11px;">{{ '🙈 Hide' if s.is_approved else '✅ Show' }}</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin_delete_service', service_id=s.id) }}" style="display:inline;" onsubmit="return confirm('Delete this service?')">
+                  <button type="submit" class="btn-outline-fh" style="height:28px;padding:0 10px;font-size:11px;color:var(--accent-2);border-color:var(--accent-2);"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Orders Tab -->
+    <div id="admin-tab-orders" class="fh-admin-content" style="display:none;">
+      <div class="fh-table-wrap">
+        <table class="fh-table">
+          <thead><tr><th>Order ID</th><th>Service</th><th>Buyer</th><th>Seller</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for o in orders %}
+            <tr>
+              <td><a href="{{ url_for('order_detail', order_id=o.id) }}" style="font-weight:700;color:var(--accent);">#{{ o.id }}</a></td>
+              <td style="font-size:13px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ o.service_title }}</td>
+              <td style="font-size:13px;color:var(--text-soft);">{{ o.buyer_name }}</td>
+              <td style="font-size:13px;color:var(--text-soft);">{{ o.seller_name }}</td>
+              <td style="font-weight:600;">{{ o.total_price | inr }}</td>
+              <td><span class="status-badge status-{{ o.status }}" style="font-size:11px;">{{ o.status | title }}</span></td>
+              <td style="font-size:12px;color:var(--text-soft);">{{ o.created_at[:10] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Support Tickets Tab -->
+    <div id="admin-tab-tickets" class="fh-admin-content" style="display:none;">
+      {% for t in tickets %}
+      <div class="fh-panel" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);">#{{ t.id }} — {{ t.subject }}</span>
+              <span class="status-badge {{ 'status-active' if t.status=='open' else 'status-completed' }}" style="font-size:11px;">{{ t.status | title }}</span>
+              {% if t.priority == 'high' %}<span class="fh-badge-red" style="font-size:11px;">High Priority</span>{% endif %}
+            </div>
+            <div style="font-size:12px;color:var(--text-soft);margin-bottom:10px;"><i class="bi bi-person me-1"></i>{{ t.name }} ({{ t.email }}) · {{ t.category | title }} · {{ t.created_at[:10] }}</div>
+            <p style="font-size:14px;color:var(--text-mid);line-height:1.65;margin-bottom:10px;">{{ t.message }}</p>
+            {% if t.admin_reply %}
+            <div style="padding:12px;background:rgba(108,99,255,.06);border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:10px;">
+              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px;">Admin Reply:</div>
+              <div style="font-size:13.5px;color:var(--text-mid);">{{ t.admin_reply }}</div>
+            </div>
+            {% endif %}
+          </div>
+          <div style="flex-shrink:0;min-width:240px;">
+            <form method="POST" action="{{ url_for('admin_reply_ticket', ticket_id=t.id) }}" style="display:flex;flex-direction:column;gap:8px;">
+              <textarea name="reply" class="fh-textarea" placeholder="Write reply..." style="min-height:80px;font-size:13px;"></textarea>
+              <select name="status" class="fh-select" style="height:36px;font-size:13px;">
+                <option value="open" {{ 'selected' if t.status=='open' }}>Open</option>
+                <option value="resolved" {{ 'selected' if t.status=='resolved' }}>Resolved</option>
+                <option value="closed" {{ 'selected' if t.status=='closed' }}>Closed</option>
+              </select>
+              <button type="submit" class="btn-primary-fh btn-sm-fh" style="justify-content:center;">Send Reply</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="fh-empty-state"><div class="fh-empty-icon">🎫</div><div class="fh-empty-title">No support tickets</div></div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+<script>function showAdminTab(t){document.querySelectorAll('.fh-admin-content').forEach(c=>c.style.display='none');document.querySelectorAll('.fh-admin-tab').forEach(b=>b.classList.remove('active'));document.getElementById('admin-tab-'+t).style.display='block';event.target.classList.add('active');}</script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Checkout — {{ service.title }} — FreelanceHub{% endblock %}
+
+{% block content %}
+<div style="background:var(--surface-2);padding:12px 0;border-bottom:1px solid var(--border);">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div class="fh-breadcrumb">
+      <a href="{{ url_for('index') }}">Home</a><span class="fh-breadcrumb-sep">/</span>
+      <a href="{{ url_for('browse') }}">Browse</a><span class="fh-breadcrumb-sep">/</span>
+      <a href="{{ url_for('service_detail', service_id=service.id) }}">{{ service.title|truncate(30) }}</a><span class="fh-breadcrumb-sep">/</span>
+      <span>Checkout</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+    <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:800;color:var(--ink);margin-bottom:6px;">Complete Your Order</h1>
+    <p style="color:var(--text-soft);margin-bottom:32px;">Review details and choose a payment method</p>
+
+    {% if existing_inquiry %}
+    <div class="fh-alert fh-alert-success" style="margin-bottom:24px;">
+      <i class="bi bi-chat-dots-fill"></i>
+      <span>You've already discussed this service with the seller. A private order chat will open once payment is confirmed.</span>
+    </div>
+    {% else %}
+    <div class="fh-alert fh-alert-info" style="margin-bottom:24px;">
+      <i class="bi bi-info-circle-fill"></i>
+      <span>Tip: <a href="{{ url_for('service_detail', service_id=service.id) }}" style="color:var(--accent);font-weight:600;">Message the seller first</a> to confirm requirements before paying. A private chat opens after your order is placed.</span>
+    </div>
+    {% endif %}
+
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start;" class="checkout-grid">
+      <!-- Left: Payment form -->
+      <div>
+        <form method="POST" action="{{ url_for('place_order', service_id=service.id) }}" id="checkoutForm">
+          <!-- Payment Methods -->
+          <div class="fh-panel" style="margin-bottom:20px;">
+            <div class="fh-panel-title">Choose Payment Method</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              {% for method, icon, label, desc in [
+                ('upi','📱','UPI Payment','Pay instantly with GPay, PhonePe, Paytm or any UPI app'),
+                ('card','💳','Credit / Debit Card','Visa, Mastercard, Rupay — all major cards accepted'),
+                ('netbanking','🏦','Net Banking','Direct bank transfer via NEFT/RTGS'),
+                ('paypal','🌐','PayPal','International payments via PayPal'),
+                ('bank_transfer','🏧','Bank Transfer (IMPS)','Direct IMPS transfer to our account'),
+                ('wallet','👛','Digital Wallet','Paytm, Amazon Pay, Mobikwik wallets')
+              ] %}
+              <label class="fh-checkout-step {{ 'selected' if loop.first }}" data-method="{{ method }}" style="cursor:pointer;">
+                <input type="radio" name="payment_method" id="pay_{{ method }}" value="{{ method }}" class="fh-payment-radio" {{ 'checked' if loop.first }}>
+                <div class="fh-checkout-icon">{{ icon }}</div>
+                <div style="flex:1;">
+                  <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);">{{ label }}</div>
+                  <div style="font-size:12px;color:var(--text-soft);margin-top:2px;">{{ desc }}</div>
+                </div>
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:none;" class="radio-dot"></div>
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Special Instructions -->
+          <div class="fh-panel" style="margin-bottom:20px;">
+            <div class="fh-panel-title">Special Instructions <span style="font-weight:400;color:var(--text-soft);font-size:13px;">(optional)</span></div>
+            <textarea name="notes" class="fh-textarea" placeholder="Any specific requirements, colour preferences, deadlines, or other details for the seller..." style="min-height:100px;"></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary-fh" style="width:100%;justify-content:center;height:54px;font-size:16px;" onclick="return confirmOrder()">
+            <i class="bi bi-lock-fill"></i> Confirm & Pay {{ service.price | inr }}
+          </button>
+          <p style="font-size:12px;color:var(--text-soft);text-align:center;margin-top:10px;">
+            <i class="bi bi-shield-check me-1"></i>Secured by FreelanceHub — Your payment is held safely until work is delivered
+          </p>
+        </form>
+      </div>
+
+      <!-- Right: Order summary -->
+      <div style="position:sticky;top:88px;">
+        <div class="fh-panel">
+          <div class="fh-panel-title">Order Summary</div>
+          <img src="{{ service.image_url or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&h=300&fit=crop' }}"
+               alt="{{ service.title }}" style="width:100%;height:160px;object-fit:cover;border-radius:var(--radius-md);margin-bottom:14px;"
+               onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&h=300&fit=crop'"/>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px;line-height:1.3;">{{ service.title }}</div>
+          <div style="font-size:13px;color:var(--text-soft);margin-bottom:6px;">
+            <i class="bi bi-person me-1"></i>{{ service.seller_name }}
+          </div>
+          <div style="font-size:13px;color:var(--text-soft);margin-bottom:16px;">
+            <i class="bi bi-clock me-1"></i>{{ service.delivery_days or 3 }}-day delivery
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:14px;color:var(--text-mid);">Service fee</span>
+            <span style="font-size:14px;color:var(--text);">{{ service.price | inr }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+            <span style="font-size:14px;color:var(--text-mid);">Platform fee</span>
+            <span style="font-size:14px;color:var(--accent-3);font-weight:600;">FREE</span>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:var(--font-display);font-weight:700;font-size:15px;">Total</span>
+            <span style="font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--ink);">{{ service.price | inr }}</span>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;padding:14px;background:rgba(67,217,173,.08);border:1.5px solid rgba(67,217,173,.25);border-radius:var(--radius-md);">
+          <div style="font-weight:700;font-size:13px;color:#0d6654;margin-bottom:4px;"><i class="bi bi-shield-check me-1"></i>FreelanceHub Guarantee</div>
+          <p style="font-size:12px;color:#1a8066;margin:0;line-height:1.5;">We hold your payment until you confirm the work is complete. Full dispute support if anything goes wrong.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media(max-width:768px){.checkout-grid{grid-template-columns:1fr !important;}}
+.fh-checkout-step.selected .radio-dot{display:flex !important;}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmOrder(){
+  const method = document.querySelector('input[name=payment_method]:checked');
+  if(!method){alert('Please select a payment method.');return false;}
+  return true;
+}
+document.querySelectorAll('.fh-checkout-step').forEach(step=>{
+  step.addEventListener('click',()=>{
+    document.querySelectorAll('.fh-checkout-step').forEach(s=>{s.classList.remove('selected');s.querySelector('.radio-dot').style.display='none';});
+    step.classList.add('selected');
+    step.querySelector('.radio-dot').style.display='flex';
+    const r=step.querySelector('input[type=radio]');if(r)r.checked=true;
+  });
+});
+</script>
+{% endblock %}

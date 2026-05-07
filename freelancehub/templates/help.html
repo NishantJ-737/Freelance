@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Help Center — FreelanceHub{% endblock %}
+{% block content %}
+
+<!-- Hero -->
+<div style="background:var(--ink);padding:56px 0;text-align:center;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 50% 50%,rgba(108,99,255,.25) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:700px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div style="font-size:3rem;margin-bottom:16px;">🆘</div>
+    <h1 style="font-family:var(--font-display);font-size:2.4rem;font-weight:800;color:white;margin-bottom:12px;">How can we help?</h1>
+    <p style="color:rgba(255,255,255,.55);font-size:15px;margin-bottom:28px;">Search our knowledge base or browse topics below</p>
+    <div style="position:relative;max-width:500px;margin:0 auto;">
+      <i class="bi bi-search" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--text-soft);font-size:16px;pointer-events:none;"></i>
+      <input type="text" id="helpSearch" placeholder="e.g. How do I place an order?" oninput="filterFaq(this.value)"
+             style="width:100%;height:52px;border-radius:99px;border:none;padding:0 20px 0 48px;font-family:var(--font-body);font-size:15px;outline:none;box-shadow:0 8px 32px rgba(0,0,0,.3);" />
+    </div>
+  </div>
+</div>
+
+<!-- Quick Links -->
+<div style="background:var(--surface-2);border-bottom:1px solid var(--border);padding:24px 0;">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      {% for icon, label, anchor in [("🛍️","Buying","buying"),("🚀","Selling","selling"),("💳","Payments","payments"),("📦","Orders","orders"),("⭐","Reviews","reviews"),("🔒","Safety","safety")] %}
+      <a href="#{{ anchor }}" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:99px;border:1.5px solid var(--border);background:white;font-size:13px;font-weight:600;color:var(--text-mid);text-decoration:none;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-mid)';">{{ icon }} {{ label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+
+    <!-- Support Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:48px;">
+      {% for icon, title, desc, link, btn in [
+        ("💬","Live Chat","Chat with our AI assistant right now for instant answers","#","Open Chat"),
+        ("🎫","Submit Ticket","Send us a detailed support request","support","Submit Ticket"),
+        ("📧","Email Support","Reach us at support@freelancehub.in","mailto:support@freelancehub.in","Send Email"),
+      ] %}
+      <div class="fh-support-card">
+        <div class="fh-support-icon">{{ icon }}</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);margin-bottom:6px;">{{ title }}</div>
+        <p style="font-size:13px;color:var(--text-soft);margin-bottom:16px;">{{ desc }}</p>
+        {% if btn == "Open Chat" %}
+        <button onclick="toggleChat();return false;" class="btn-outline-fh btn-sm-fh" style="font-size:12px;">{{ btn }}</button>
+        {% elif link.startswith('mailto') %}
+        <a href="{{ link }}" class="btn-outline-fh btn-sm-fh" style="font-size:12px;">{{ btn }}</a>
+        {% else %}
+        <a href="{{ url_for(link) }}" class="btn-outline-fh btn-sm-fh" style="font-size:12px;">{{ btn }}</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Buying -->
+    <div id="buying" style="margin-bottom:40px;">
+      <div class="fh-section-eyebrow">🛍️ Buying</div>
+      <h2 style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:var(--ink);margin-bottom:16px;">Getting Started as a Buyer</h2>
+      {% for q, a in [
+        ("How do I find the right service?","Use the search bar or browse by category. Filter by price, delivery time, and rating. Our AI chatbot can also help you find the perfect service based on your description."),
+        ("Can I talk to a seller before ordering?","Absolutely! Every service page has a 'Message Seller' section. You can discuss requirements, ask questions, and clarify scope before committing to a payment. We strongly recommend doing this."),
+        ("How do I place an order?","1. Find a service you like. 2. Message the seller to confirm requirements. 3. Click 'Continue to Payment'. 4. Choose your payment method. 5. Confirm the order. You'll get a private chat with the seller after payment."),
+        ("What happens after I pay?","Your payment is held securely. The seller gets notified and has 48 hours to accept. Once accepted, the work begins. You'll have a private order chat for all communication. When satisfied, approve delivery."),
+        ("Can I cancel my order?","Yes, you can cancel a Pending order before the seller accepts it. Once the order is Active (seller accepted), contact the seller first. For disputes, contact our support team."),
+        ("How do I leave a review?","Only buyers who complete and approve an order can leave reviews. Visit the service page after your order is marked complete — you'll see the review form there."),
+      ] %}
+      <div class="fh-faq-item" data-faq="{{ q }} {{ a }}">
+        <div class="fh-faq-q">{{ q }}<span class="arrow"><i class="bi bi-chevron-down"></i></span></div>
+        <div class="fh-faq-a">{{ a }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Selling -->
+    <div id="selling" style="margin-bottom:40px;">
+      <div class="fh-section-eyebrow">🚀 Selling</div>
+      <h2 style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:var(--ink);margin-bottom:16px;">Growing as a Seller</h2>
+      {% for q, a in [
+        ("How do I become a seller?","Sign up and choose 'Offer Services' (Seller role). Once registered, go to 'Post a Service' from the navigation bar. Fill in your service details, set your price, and publish!"),
+        ("How does AI pricing suggestion work?","When you create a service, our AI analyzes your title, description, and category, then compares it against existing services to suggest an optimal price range based on real market data."),
+        ("When do I get paid?","Payments are released to sellers when the buyer marks the order as complete. Make sure your bank details are updated in account settings. Payments process within 2–3 business days."),
+        ("How do I respond to buyer inquiries?","Buyer messages appear on your service detail page. Visit the service to see and reply to pre-purchase inquiries. For order messages, use the private order chat on the order detail page."),
+        ("Can I offer multiple packages?","Currently each service has one price point. We recommend creating separate service listings for different tiers (e.g., basic logo vs premium brand package)."),
+        ("What makes a great service listing?","Use a clear, specific title. Write a detailed description covering what's included. Use a high-quality image. Set a competitive price. Add relevant tags. Services with more detail get 3x more orders."),
+      ] %}
+      <div class="fh-faq-item" data-faq="{{ q }} {{ a }}">
+        <div class="fh-faq-q">{{ q }}<span class="arrow"><i class="bi bi-chevron-down"></i></span></div>
+        <div class="fh-faq-a">{{ a }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Payments -->
+    <div id="payments" style="margin-bottom:40px;">
+      <div class="fh-section-eyebrow">💳 Payments</div>
+      <h2 style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:var(--ink);margin-bottom:16px;">Payments & Billing</h2>
+      {% for q, a in [
+        ("What payment methods are supported?","We support UPI (GPay, PhonePe, Paytm), Credit/Debit Cards (Visa, Mastercard, RuPay), Net Banking (all major banks), PayPal (international), Bank Transfer (NEFT/IMPS), and Digital Wallets (Paytm, Amazon Pay)."),
+        ("Are payments secure?","Yes. All transactions use 256-bit SSL encryption. Buyer payments are held in escrow and released to the seller only after the buyer approves delivery."),
+        ("Is there a platform fee?","FreelanceHub is currently free for buyers and sellers. No hidden fees, no commissions. We may introduce optional premium features in the future."),
+        ("What currency does the platform use?","All prices are in Indian Rupees (Rs./INR). International buyers can pay via PayPal which handles currency conversion automatically."),
+        ("How long do refunds take?","For cancelled pending orders, refunds process within 5–7 business days depending on your payment method and bank."),
+      ] %}
+      <div class="fh-faq-item" data-faq="{{ q }} {{ a }}">
+        <div class="fh-faq-q">{{ q }}<span class="arrow"><i class="bi bi-chevron-down"></i></span></div>
+        <div class="fh-faq-a">{{ a }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Orders -->
+    <div id="orders" style="margin-bottom:40px;">
+      <div class="fh-section-eyebrow">📦 Orders</div>
+      <h2 style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:var(--ink);margin-bottom:16px;">Order Management</h2>
+      {% for q, a in [
+        ("What are the order statuses?","Pending: Order placed, waiting for seller to accept. Active: Seller accepted, work in progress. Completed: Buyer approved delivery. Cancelled: Order was cancelled by either party."),
+        ("How does the order chat work?","After an order is placed, a private and secure chat opens between the buyer and seller. All communication, files, and agreements can happen here. This serves as an on-platform record of everything."),
+        ("What if the seller doesn't deliver on time?","Contact the seller via the order chat first. If there's no response within 48 hours, contact our support team and we'll mediate."),
+        ("Can I extend the delivery deadline?","Yes, both parties can agree to extend via the order chat. Message your seller to request an extension."),
+      ] %}
+      <div class="fh-faq-item" data-faq="{{ q }} {{ a }}">
+        <div class="fh-faq-q">{{ q }}<span class="arrow"><i class="bi bi-chevron-down"></i></span></div>
+        <div class="fh-faq-a">{{ a }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Safety -->
+    <div id="safety" style="margin-bottom:40px;">
+      <div class="fh-section-eyebrow">🔒 Trust & Safety</div>
+      <h2 style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:var(--ink);margin-bottom:16px;">Staying Safe on FreelanceHub</h2>
+      {% for q, a in [
+        ("How does FreelanceHub prevent scams?","Only verified buyers who complete orders can leave reviews. All payments go through our secure platform — never pay outside FreelanceHub. Pre-purchase chat helps clarify everything before any money changes hands."),
+        ("What should I never share?","Never share your bank account details, passwords, or personal identity documents in chat. Never agree to pay outside the platform. Report suspicious messages to our support team immediately."),
+        ("How do I report a problem?","Use the 'Contact Support' button or submit a support ticket via Help → Contact Support. For urgent safety issues, email safety@freelancehub.in directly."),
+        ("Are reviews genuine?","Yes. We only allow reviews from accounts that have a completed order for that service. Suspicious reviews are automatically flagged and reviewed by our moderation team."),
+      ] %}
+      <div class="fh-faq-item" data-faq="{{ q }} {{ a }}">
+        <div class="fh-faq-q">{{ q }}<span class="arrow"><i class="bi bi-chevron-down"></i></span></div>
+        <div class="fh-faq-a">{{ a }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- CTA -->
+    <div style="background:linear-gradient(135deg,var(--ink),var(--ink-mid));border-radius:var(--radius-xl);padding:40px;text-align:center;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 50%,rgba(108,99,255,.2) 0%,transparent 65%);pointer-events:none;"></div>
+      <div style="position:relative;z-index:1;">
+        <div style="font-size:2.5rem;margin-bottom:14px;">🎫</div>
+        <h3 style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:white;margin-bottom:8px;">Still need help?</h3>
+        <p style="color:rgba(255,255,255,.5);font-size:14px;margin-bottom:24px;">Our support team responds within 24 hours on weekdays</p>
+        <a href="{{ url_for('support') }}" class="btn-primary-fh" style="display:inline-flex;">Submit a Support Ticket <i class="bi bi-arrow-right ms-2"></i></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function filterFaq(q) {
+  const term = q.toLowerCase();
+  document.querySelectorAll('.fh-faq-item').forEach(item => {
+    const text = (item.dataset.faq || '').toLowerCase();
+    item.style.display = term.length < 2 || text.includes(term) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

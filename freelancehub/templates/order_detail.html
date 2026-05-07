@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }} — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:28px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 40% 80% at 70% 50%,rgba(108,99,255,.2) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div class="fh-breadcrumb" style="margin-bottom:10px;">
+      <a href="{{ url_for('my_orders') }}" style="color:rgba(255,255,255,.4);">Orders</a>
+      <span class="fh-breadcrumb-sep" style="color:rgba(255,255,255,.2);">/</span>
+      <span style="color:rgba(255,255,255,.7);">Order #{{ order.id }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:800;color:white;">Order #{{ order.id }}</h1>
+      <span class="status-badge status-{{ order.status }}" style="font-size:13px;">{{ order.status | title }}</span>
+    </div>
+    <p style="color:rgba(255,255,255,.45);font-size:13px;margin-top:4px;">Placed on {{ order.created_at[:10] }} · Ref: {{ order.payment_ref or 'N/A' }}</p>
+  </div>
+</div>
+
+<div class="section-pad-sm">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start;" class="order-grid">
+
+      <!-- LEFT -->
+      <div>
+        <!-- Service Info -->
+        <div class="fh-panel" style="margin-bottom:20px;display:flex;gap:16px;align-items:flex-start;">
+          <img src="{{ order.image_url or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=120&fit=crop' }}"
+               alt="{{ order.service_title }}" style="width:120px;height:80px;object-fit:cover;border-radius:var(--radius-md);flex-shrink:0;"
+               onerror="this.style.display='none'" />
+          <div style="flex:1;">
+            <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px;">Service</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink);margin-bottom:6px;">{{ order.service_title }}</div>
+            {% if order.notes %}
+            <div style="font-size:13px;color:var(--text-soft);"><strong>Notes:</strong> {{ order.notes }}</div>
+            {% endif %}
+            <a href="{{ url_for('service_detail', service_id=order.svc_id) }}" class="fh-btn-view" style="margin-top:8px;display:inline-flex;">View Service <i class="bi bi-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Order Timeline -->
+        <div class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title"><i class="bi bi-list-check me-2" style="color:var(--accent);"></i>Order Timeline</div>
+          <div class="fh-timeline">
+            {% for step, label, icon in [("pending","Order Placed","📋"),("active","Work In Progress","⚡"),("completed","Delivered & Completed","✅")] %}
+            {% set done = (order.status == "completed") or (order.status == "active" and step == "pending") or (order.status == step) %}
+            {% set active = order.status == step %}
+            <div class="fh-timeline-item {{ 'done' if done }} {{ 'active' if active }}">
+              <div class="fh-timeline-dot"></div>
+              <div style="font-family:var(--font-display);font-weight:{% if active %}700{% else %}500{% endif %};font-size:14px;color:{% if active %}var(--ink){% else %}var(--text-soft){% endif %};">
+                {{ icon }} {{ label }}
+              </div>
+            </div>
+            {% endfor %}
+            {% if order.status == 'cancelled' %}
+            <div class="fh-timeline-item active">
+              <div class="fh-timeline-dot" style="background:var(--accent-2);border-color:var(--accent-2);"></div>
+              <div style="font-weight:700;font-size:14px;color:var(--accent-2);">❌ Order Cancelled</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Private Order Chat -->
+        <div class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title"><i class="bi bi-shield-lock me-2" style="color:var(--accent-3);"></i>Private Order Chat
+            <span style="font-size:12px;font-weight:400;color:var(--text-soft);margin-left:8px;">Only you and {{ order.seller_name if current_user.id == order.buyer_id else order.buyer_name }} can see this</span>
+          </div>
+          <div class="fh-order-chat">
+            <div class="fh-order-chat-header">
+              <div class="fh-seller-avatar-sm">{{ (order.seller_name if current_user.id == order.buyer_id else order.buyer_name)[0]|upper }}</div>
+              <div>
+                <div style="font-weight:600;font-size:13px;color:var(--ink);">{{ order.seller_name if current_user.id == order.buyer_id else order.buyer_name }}</div>
+                <div style="font-size:11px;color:var(--text-soft);">{{ 'Seller' if current_user.id == order.buyer_id else 'Buyer' }}</div>
+              </div>
+              <div style="margin-left:auto;font-size:12px;color:var(--accent-3);display:flex;align-items:center;gap:5px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--accent-3);display:inline-block;"></span> Private & Secure
+              </div>
+            </div>
+            <div class="fh-order-chat-messages" id="orderChatMsgs">
+              {% if messages %}
+                {% for msg in messages %}
+                <div style="display:flex;flex-direction:column;max-width:78%;{{ 'margin-left:auto;align-items:flex-end;' if msg.sender_id == current_user.id else 'align-items:flex-start;' }}">
+                  <div style="font-size:10.5px;color:var(--text-soft);margin-bottom:3px;">{{ msg.sender_name }} · {{ msg.created_at | time_ago }}</div>
+                  <div style="padding:10px 14px;border-radius:{% if msg.sender_id == current_user.id %}12px 4px 12px 12px{% else %}4px 12px 12px 12px{% endif %};font-size:13.5px;line-height:1.5;{{ 'background:var(--accent);color:white;' if msg.sender_id == current_user.id else 'background:var(--surface-2);border:1px solid var(--border);color:var(--text);' }}">{{ msg.content }}</div>
+                </div>
+                {% endfor %}
+              {% else %}
+              <div style="text-align:center;color:var(--text-soft);font-size:14px;padding:24px;">
+                <div style="font-size:2rem;margin-bottom:8px;">💬</div>
+                No messages yet. Start the conversation!
+              </div>
+              {% endif %}
+            </div>
+            {% if order.status != 'cancelled' %}
+            <div class="fh-order-chat-input">
+              <form action="{{ url_for('send_message', order_id=order.id) }}" method="POST" style="display:flex;gap:8px;width:100%;align-items:flex-end;">
+                <textarea name="content" class="fh-textarea" placeholder="Type a message..." style="min-height:60px;flex:1;font-size:13.5px;" required onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').submit();}"></textarea>
+                <button type="submit" class="btn-primary-fh btn-sm-fh" style="align-self:flex-end;flex-shrink:0;"><i class="bi bi-send-fill"></i></button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDEBAR -->
+      <div style="position:sticky;top:88px;">
+        <!-- Order Summary -->
+        <div class="fh-panel" style="margin-bottom:16px;">
+          <div class="fh-panel-title">Payment Details</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            {% for label, value in [
+              ("Amount", order.total_price | inr),
+              ("Method", order.payment_method | payment_label),
+              ("Reference", order.payment_ref or 'N/A'),
+              ("Buyer", order.buyer_name),
+              ("Seller", order.seller_name)
+            ] %}
+            <div style="display:flex;justify-content:space-between;font-size:13.5px;">
+              <span style="color:var(--text-soft);">{{ label }}</span>
+              <span style="font-weight:600;color:var(--ink);">{{ value }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="fh-panel">
+          <div class="fh-panel-title">Order Actions</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            {% if current_user.role == 'seller' and current_user.id == order.seller_id %}
+              {% if order.status == 'pending' %}
+              <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                <input type="hidden" name="status" value="active" />
+                <button type="submit" class="btn-primary-fh btn-sm-fh" style="width:100%;justify-content:center;">⚡ Accept Order</button>
+              </form>
+              <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                <input type="hidden" name="status" value="cancelled" />
+                <button type="submit" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;color:var(--accent-2);border-color:var(--accent-2);" onclick="return confirm('Cancel this order?')">❌ Decline Order</button>
+              </form>
+              {% elif order.status == 'active' %}
+              <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                <input type="hidden" name="status" value="completed" />
+                <button type="submit" class="btn-primary-fh btn-sm-fh" style="width:100%;justify-content:center;background:var(--accent-3);" onclick="return confirm('Mark as completed?')">✅ Mark Delivered</button>
+              </form>
+              {% endif %}
+            {% endif %}
+
+            {% if current_user.id == order.buyer_id %}
+              {% if order.status == 'pending' %}
+              <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                <input type="hidden" name="status" value="cancelled" />
+                <button type="submit" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;color:var(--accent-2);border-color:var(--accent-2);" onclick="return confirm('Cancel this order?')">❌ Cancel Order</button>
+              </form>
+              {% elif order.status == 'active' %}
+              <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                <input type="hidden" name="status" value="completed" />
+                <button type="submit" class="btn-primary-fh btn-sm-fh" style="width:100%;justify-content:center;background:var(--accent-3);" onclick="return confirm('Mark as complete?')">✅ Approve Delivery</button>
+              </form>
+              {% elif order.status == 'completed' %}
+              <a href="{{ url_for('service_detail', service_id=order.svc_id) }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;">⭐ Leave a Review</a>
+              {% endif %}
+            {% endif %}
+
+            <a href="{{ url_for('my_orders') }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;">← Back to Orders</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>@media(max-width:768px){.order-grid{grid-template-columns:1fr !important;}}</style>
+{% endblock %}
+{% block scripts %}
+<script>const mc=document.getElementById('orderChatMsgs');if(mc)mc.scrollTop=mc.scrollHeight;</script>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Post a Service — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:32px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 80% 50%,rgba(245,166,35,.15) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin-bottom:6px;">Post a New Service</h1>
+    <p style="color:rgba(255,255,255,.5);font-size:14px;">Fill in the details below. Our AI will suggest the best category and pricing.</p>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+    <form method="POST" action="{{ url_for('post_service') }}" enctype="multipart/form-data">
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;" class="post-grid">
+        <div>
+          <!-- Basic Info -->
+          <div class="fh-panel" style="margin-bottom:20px;">
+            <div class="fh-panel-title">📝 Service Details</div>
+            <div style="display:flex;flex-direction:column;gap:18px;">
+              <div>
+                <label class="fh-form-label">Service Title <span style="color:var(--accent-2);">*</span></label>
+                <input type="text" id="title" name="title" class="fh-input" placeholder="e.g. Professional Logo Design with Unlimited Revisions" required maxlength="120" data-maxlength="120" />
+                <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:var(--text-soft);">
+                  <span>Be specific and highlight your unique value</span>
+                  <span data-counter-for="title">0 / 120</span>
+                </div>
+              </div>
+              <div>
+                <label class="fh-form-label">Category <span style="color:var(--accent-2);">*</span></label>
+                <select id="category_id" name="category_id" class="fh-select" required>
+                  <option value="">— Select a Category —</option>
+                  {% for cat in categories %}
+                  <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+                  {% endfor %}
+                </select>
+                <span id="ai-category-label" style="display:none;font-size:12px;color:var(--accent-3);margin-top:5px;font-weight:600;"><i class="bi bi-robot me-1"></i></span>
+              </div>
+              <div>
+                <label class="fh-form-label">Description <span style="color:var(--accent-2);">*</span></label>
+                <textarea id="description" name="description" class="fh-textarea" placeholder="Describe what you offer, what's included, your process, and why clients should choose you..." style="min-height:160px;" required maxlength="2000" data-maxlength="2000"></textarea>
+                <div style="display:flex;justify-content:flex-end;margin-top:5px;font-size:11px;color:var(--text-soft);">
+                  <span data-counter-for="description">0 / 2000</span>
+                </div>
+              </div>
+              <div>
+                <label class="fh-form-label">Tags <span style="color:var(--text-soft);font-size:11px;">(comma-separated, max 5)</span></label>
+                <input type="text" id="tags" name="tags" class="fh-input" placeholder="e.g. logo, branding, vector, illustrator" />
+                <div id="tag-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Service Image -->
+          <div class="fh-panel" style="margin-bottom:20px;">
+            <div class="fh-panel-title">🖼️ Service Image</div>
+            <p style="font-size:13px;color:var(--text-soft);margin-bottom:14px;">Upload a high-quality image that showcases your work. If left empty, we'll auto-select a relevant image.</p>
+            <div style="margin-bottom:12px;">
+              <label class="fh-form-label">Upload Image File</label>
+              <input type="file" id="image_file" name="image_file" accept="image/*" class="fh-input" style="height:auto;padding:10px;" />
+            </div>
+            <div style="margin-bottom:12px;">
+              <label class="fh-form-label">— or paste an Image URL</label>
+              <input type="url" id="image_url" name="image_url" class="fh-input" placeholder="https://..." />
+            </div>
+            <img id="img-preview" style="display:none;width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-md);border:1.5px solid var(--border);" alt="Preview" />
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div style="position:sticky;top:88px;">
+          <div class="fh-panel" style="margin-bottom:16px;">
+            <div class="fh-panel-title">💰 Pricing & Delivery</div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label class="fh-form-label">Price (Rs.) <span style="color:var(--accent-2);">*</span></label>
+                <input type="number" id="price" name="price" class="fh-input" placeholder="e.g. 5000" min="1" required />
+                <div id="price-suggestion" style="display:none;margin-top:8px;font-size:12px;color:var(--text-mid);padding:10px 12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:var(--radius-sm);align-items:flex-start;gap:6px;flex-wrap:wrap;"></div>
+              </div>
+              <div>
+                <label class="fh-form-label">Delivery Time</label>
+                <select name="delivery_days" class="fh-select">
+                  {% for d, l in [(1,"1 day"),(2,"2 days"),(3,"3 days"),(5,"5 days"),(7,"1 week"),(10,"10 days"),(14,"2 weeks"),(21,"3 weeks"),(30,"1 month")] %}
+                  <option value="{{ d }}" {{ 'selected' if d==3 }}>{{ l }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="fh-panel" style="background:rgba(108,99,255,.04);border-color:rgba(108,99,255,.2);margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;"><i class="bi bi-robot me-1"></i>AI Assistant</div>
+            <div style="font-size:12.5px;color:var(--text-mid);line-height:1.6;">Start typing your title and description — our AI will automatically suggest the best <strong>category</strong> and <strong>pricing</strong> based on market data.</div>
+          </div>
+
+          <button type="submit" class="btn-primary-fh" style="width:100%;justify-content:center;">Publish Service <i class="bi bi-arrow-right"></i></button>
+          <a href="{{ url_for('my_services') }}" class="btn-outline-fh" style="width:100%;justify-content:center;margin-top:8px;">Cancel</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<style>@media(max-width:768px){.post-grid{grid-template-columns:1fr !important;}}</style>
+{% endblock %}

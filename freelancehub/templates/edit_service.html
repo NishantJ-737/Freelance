@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Edit Service — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:32px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 80% 50%,rgba(245,166,35,.15) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div class="fh-breadcrumb" style="margin-bottom:10px;">
+      <a href="{{ url_for('my_services') }}" style="color:rgba(255,255,255,.4);">My Services</a>
+      <span class="fh-breadcrumb-sep" style="color:rgba(255,255,255,.2);">/</span>
+      <span style="color:rgba(255,255,255,.7);">Edit Service</span>
+    </div>
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;">Edit Service</h1>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+    <form method="POST" action="{{ url_for('edit_service', service_id=service.id) }}" enctype="multipart/form-data">
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;" class="post-grid">
+        <div>
+          <div class="fh-panel" style="margin-bottom:20px;">
+            <div class="fh-panel-title">📝 Service Details</div>
+            <div style="display:flex;flex-direction:column;gap:18px;">
+              <div>
+                <label class="fh-form-label">Service Title <span style="color:var(--accent-2);">*</span></label>
+                <input type="text" id="title" name="title" class="fh-input" value="{{ service.title }}" required maxlength="120" data-maxlength="120" />
+                <div style="display:flex;justify-content:flex-end;margin-top:5px;font-size:11px;color:var(--text-soft);"><span data-counter-for="title">0 / 120</span></div>
+              </div>
+              <div>
+                <label class="fh-form-label">Category <span style="color:var(--accent-2);">*</span></label>
+                <select id="category_id" name="category_id" class="fh-select" required>
+                  {% for cat in categories %}
+                  <option value="{{ cat.id }}" {{ 'selected' if cat.id == service.category_id }}>{{ cat.icon }} {{ cat.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="fh-form-label">Description <span style="color:var(--accent-2);">*</span></label>
+                <textarea id="description" name="description" class="fh-textarea" style="min-height:160px;" required maxlength="2000" data-maxlength="2000">{{ service.description }}</textarea>
+                <div style="display:flex;justify-content:flex-end;margin-top:5px;font-size:11px;color:var(--text-soft);"><span data-counter-for="description">0 / 2000</span></div>
+              </div>
+              <div>
+                <label class="fh-form-label">Tags <span style="color:var(--text-soft);font-size:11px;">(comma-separated)</span></label>
+                <input type="text" id="tags" name="tags" class="fh-input" value="{{ tags_str }}" placeholder="logo, branding, design" />
+                <div id="tag-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="fh-panel" style="margin-bottom:20px;">
+            <div class="fh-panel-title">🖼️ Service Image</div>
+            {% if service.image_url %}
+            <img src="{{ service.image_url }}" alt="Current" style="width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-md);border:1.5px solid var(--border);margin-bottom:14px;" />
+            <p style="font-size:12px;color:var(--text-soft);margin-bottom:12px;">Current image shown above. Upload a new one to replace it.</p>
+            {% endif %}
+            <div style="margin-bottom:12px;">
+              <label class="fh-form-label">Upload New Image</label>
+              <input type="file" id="image_file" name="image_file" accept="image/*" class="fh-input" style="height:auto;padding:10px;" />
+            </div>
+            <div>
+              <label class="fh-form-label">— or paste Image URL</label>
+              <input type="url" id="image_url" name="image_url" class="fh-input" placeholder="https://..." value="{{ service.image_url or '' }}" />
+            </div>
+            <img id="img-preview" style="display:none;width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-md);border:1.5px solid var(--border);margin-top:12px;" alt="Preview" />
+          </div>
+        </div>
+
+        <div style="position:sticky;top:88px;">
+          <div class="fh-panel" style="margin-bottom:16px;">
+            <div class="fh-panel-title">💰 Pricing & Delivery</div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label class="fh-form-label">Price (Rs.) <span style="color:var(--accent-2);">*</span></label>
+                <input type="number" id="price" name="price" class="fh-input" value="{{ service.price }}" min="1" required />
+                <div id="price-suggestion" style="display:none;margin-top:8px;font-size:12px;color:var(--text-mid);padding:10px 12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:var(--radius-sm);align-items:flex-start;gap:6px;flex-wrap:wrap;"></div>
+              </div>
+              <div>
+                <label class="fh-form-label">Delivery Time</label>
+                <select name="delivery_days" class="fh-select">
+                  {% for d, l in [(1,"1 day"),(2,"2 days"),(3,"3 days"),(5,"5 days"),(7,"1 week"),(10,"10 days"),(14,"2 weeks"),(21,"3 weeks"),(30,"1 month")] %}
+                  <option value="{{ d }}" {{ 'selected' if d == service.delivery_days }}>{{ l }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary-fh" style="width:100%;justify-content:center;">Save Changes <i class="bi bi-check2"></i></button>
+          <a href="{{ url_for('service_detail', service_id=service.id) }}" class="btn-outline-fh" style="width:100%;justify-content:center;margin-top:8px;">← Cancel</a>
+
+          <div class="fh-panel" style="margin-top:16px;border-color:rgba(255,101,132,.25);background:rgba(255,101,132,.04);">
+            <div style="font-size:13px;font-weight:700;color:var(--accent-2);margin-bottom:10px;"><i class="bi bi-exclamation-triangle me-1"></i>Danger Zone</div>
+            <form method="POST" action="{{ url_for('delete_service', service_id=service.id) }}" onsubmit="return confirm('Permanently delete this service? This cannot be undone.')">
+              <button type="submit" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;color:var(--accent-2);border-color:var(--accent-2);">🗑️ Delete Service</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<style>@media(max-width:768px){.post-grid{grid-template-columns:1fr !important;}}</style>
+{% endblock %}

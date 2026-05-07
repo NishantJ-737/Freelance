@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Sign Up — FreelanceHub{% endblock %}
+{% block content %}
+<div class="fh-auth-page">
+  <div class="fh-auth-side">
+    <div style="margin-bottom:48px;">
+      <a href="{{ url_for('index') }}" class="fh-logo">
+        <div class="fh-logo-icon"><svg width="44" height="44" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="10" fill="#1e1e2e"/><path d="M19 8 L26.5 12.5 V21.5 L19 26 L11.5 21.5 V12.5 Z" fill="none" stroke="#6c63ff" stroke-width="1.8"/><path d="M16 14h7M16 19h5M16 14v10" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="27.5" cy="11" r="3" fill="#43d9ad"/></svg></div>
+        <div class="fh-logo-wordmark"><span class="fh-logo-main" style="color:white;font-size:22px;">FreelanceHub</span><span class="fh-logo-sub">Hire · Create · Grow</span></div>
+      </a>
+    </div>
+    <h2 style="font-family:var(--font-display);font-size:2.2rem;font-weight:800;color:white;line-height:1.2;margin-bottom:20px;">Start your journey<br><span style="background:linear-gradient(135deg,#43d9ad,#6c63ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">today for free</span></h2>
+    <p style="color:rgba(255,255,255,.55);font-size:15px;line-height:1.7;margin-bottom:36px;">Whether you want to hire the best talent or offer your skills — FreelanceHub is where careers and businesses grow.</p>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      {% for icon,text in [("🎯","Find the perfect service in minutes"),("💰","Transparent pricing, no hidden fees"),("🤝","Chat with sellers before you pay"),("✅","Verified reviews from real buyers")] %}
+      <div style="display:flex;align-items:center;gap:12px;"><span style="font-size:1.3rem;">{{icon}}</span><span style="color:rgba(255,255,255,.7);font-size:14px;">{{text}}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="fh-auth-form-side">
+    <div class="fh-auth-title">Create your account</div>
+    <p class="fh-auth-sub">Join FreelanceHub — it's completely free</p>
+    <form method="POST" action="{{ url_for('signup') }}" style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label class="fh-form-label">Full Name</label>
+        <input type="text" name="name" class="fh-input" placeholder="Your full name" required autocomplete="name" />
+      </div>
+      <div>
+        <label class="fh-form-label">Email Address</label>
+        <input type="email" name="email" class="fh-input" placeholder="you@example.com" required autocomplete="email" />
+      </div>
+      <div>
+        <label class="fh-form-label">Password</label>
+        <div style="position:relative;">
+          <input type="password" name="password" id="signupPw" class="fh-input" placeholder="Min. 6 characters" required autocomplete="new-password" />
+          <button type="button" onclick="togglePw('signupPw',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:16px;"><i class="bi bi-eye"></i></button>
+        </div>
+        <div style="height:4px;background:var(--border);border-radius:99px;margin-top:8px;overflow:hidden;"><div id="strength-bar" style="height:100%;width:0;border-radius:99px;transition:all .3s;"></div></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;"><span id="strength-label" style="font-size:11px;font-weight:600;"></span></div>
+      </div>
+      <div>
+        <label class="fh-form-label">I want to…</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <label class="fh-role-card selected" onclick="selectRole('buyer')">
+            <input type="radio" name="role" value="buyer" checked style="display:none;" />
+            <span class="fh-role-icon">🛍️</span>
+            <div><div class="fh-role-title">Hire Talent</div><div class="fh-role-desc">I need services for my project</div></div>
+          </label>
+          <label class="fh-role-card" onclick="selectRole('seller')">
+            <input type="radio" name="role" value="seller" style="display:none;" />
+            <span class="fh-role-icon">🚀</span>
+            <div><div class="fh-role-title">Offer Services</div><div class="fh-role-desc">I want to earn as a freelancer</div></div>
+          </label>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary-fh" style="justify-content:center;width:100%;height:50px;font-size:16px;">Create Free Account <i class="bi bi-arrow-right"></i></button>
+      <p style="font-size:12px;color:var(--text-soft);text-align:center;">By signing up, you agree to our <a href="#" style="color:var(--accent);">Terms of Service</a> and <a href="#" style="color:var(--accent);">Privacy Policy</a></p>
+    </form>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
+      <p style="font-size:14px;color:var(--text-soft);">Already have an account? <a href="{{ url_for('login') }}" style="color:var(--accent);font-weight:600;">Log in →</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function togglePw(id,btn){const inp=document.getElementById(id);const show=inp.type==='text';inp.type=show?'password':'text';btn.querySelector('i').className=show?'bi bi-eye':'bi bi-eye-slash';}
+function selectRole(role){document.querySelectorAll('.fh-role-card').forEach(c=>{c.classList.remove('selected');const r=c.querySelector('input');if(r)r.checked=false;});const sel=document.querySelector(`.fh-role-card input[value="${role}"]`);if(sel){sel.checked=true;sel.closest('.fh-role-card').classList.add('selected');}}
+</script>
+{% endblock %}

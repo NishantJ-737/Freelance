@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Account Settings — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:32px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 40% 80% at 80% 50%,rgba(108,99,255,.2) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;">Account Settings</h1>
+    <p style="color:rgba(255,255,255,.5);font-size:14px;">Manage your profile, password, and preferences</p>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+    <div style="display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start;" class="account-grid">
+
+      <!-- Sidebar Nav -->
+      <div class="fh-panel" style="padding:10px;">
+        {% for anchor, icon, label in [("#profile","bi-person","Profile Info"),("#password","bi-lock","Change Password"),("#danger","bi-exclamation-triangle","Danger Zone")] %}
+        <a href="{{ anchor }}" class="fh-filter-option" style="margin-bottom:2px;"><i class="bi {{ icon }} me-2"></i>{{ label }}</a>
+        {% endfor %}
+        <div class="divider"></div>
+        <a href="{{ url_for('profile', user_id=user.id) }}" class="fh-filter-option"><i class="bi bi-eye me-2"></i>View Profile</a>
+        {% if user.role == 'seller' %}
+        <a href="{{ url_for('my_services') }}" class="fh-filter-option"><i class="bi bi-collection me-2"></i>My Services</a>
+        {% endif %}
+      </div>
+
+      <div>
+        <!-- Profile Info -->
+        <div id="profile" class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title"><i class="bi bi-person me-2" style="color:var(--accent);"></i>Profile Information</div>
+          <form method="POST" action="{{ url_for('account') }}" style="display:flex;flex-direction:column;gap:16px;">
+            <input type="hidden" name="action" value="profile" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="form-2col">
+              <div>
+                <label class="fh-form-label">Full Name <span style="color:var(--accent-2);">*</span></label>
+                <input type="text" name="name" class="fh-input" value="{{ user.name }}" required />
+              </div>
+              <div>
+                <label class="fh-form-label">Email Address</label>
+                <input type="email" class="fh-input" value="{{ user.email }}" disabled style="opacity:.6;cursor:not-allowed;background:var(--surface-2);" />
+              </div>
+            </div>
+            <div>
+              <label class="fh-form-label">Bio <span style="color:var(--text-soft);font-size:11px;">(optional)</span></label>
+              <textarea name="bio" class="fh-textarea" placeholder="Tell clients about yourself, your skills, and experience..." style="min-height:100px;">{{ user.bio or '' }}</textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="form-2col">
+              <div>
+                <label class="fh-form-label">Location <span style="color:var(--text-soft);font-size:11px;">(optional)</span></label>
+                <input type="text" name="location" class="fh-input" value="{{ user.location or '' }}" placeholder="e.g. Mumbai, India" />
+              </div>
+              <div>
+                <label class="fh-form-label">Website / Portfolio <span style="color:var(--text-soft);font-size:11px;">(optional)</span></label>
+                <input type="url" name="website" class="fh-input" value="{{ user.website or '' }}" placeholder="https://yourportfolio.com" />
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-md);">
+              <div class="fh-avatar" style="width:48px;height:48px;font-size:20px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:white;font-family:var(--font-display);font-weight:800;display:flex;align-items:center;justify-content:center;">{{ user.name[0]|upper }}</div>
+              <div>
+                <div style="font-weight:600;font-size:14px;color:var(--ink);">{{ user.name }}</div>
+                <div style="font-size:12px;color:var(--text-soft);">{{ user.role | title }} account · Joined {{ user.created_at[:7] }}</div>
+              </div>
+              <span class="fh-badge-{{ 'accent' if user.role == 'seller' else 'green' }}" style="margin-left:auto;">{{ user.role | title }}</span>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="submit" class="btn-primary-fh btn-sm-fh">Save Profile Changes</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Password -->
+        <div id="password" class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title"><i class="bi bi-lock me-2" style="color:var(--accent);"></i>Change Password</div>
+          <form method="POST" action="{{ url_for('account') }}" style="display:flex;flex-direction:column;gap:16px;">
+            <input type="hidden" name="action" value="password" />
+            <div>
+              <label class="fh-form-label">Current Password</label>
+              <div style="position:relative;">
+                <input type="password" name="current_password" id="curPw" class="fh-input" required />
+                <button type="button" onclick="togglePw('curPw',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:16px;"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+            <div>
+              <label class="fh-form-label">New Password</label>
+              <div style="position:relative;">
+                <input type="password" name="new_password" id="newPw" class="fh-input" minlength="6" required />
+                <button type="button" onclick="togglePw('newPw',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:16px;"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+            <div>
+              <label class="fh-form-label">Confirm New Password</label>
+              <input type="password" name="confirm_password" class="fh-input" required />
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="submit" class="btn-primary-fh btn-sm-fh">Update Password</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Danger Zone -->
+        <div id="danger" class="fh-panel" style="border-color:rgba(255,101,132,.25);background:rgba(255,101,132,.03);">
+          <div class="fh-panel-title" style="color:var(--accent-2);">⚠️ Danger Zone</div>
+          <p style="font-size:14px;color:var(--text-soft);margin-bottom:16px;">Once you delete your account, all your data including services, orders, and messages will be permanently removed. This action cannot be undone.</p>
+          <a href="{{ url_for('support') }}" class="btn-outline-fh btn-sm-fh" style="color:var(--accent-2);border-color:var(--accent-2);">Contact Support to Delete Account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media(max-width:768px){.account-grid{grid-template-columns:1fr !important;} .form-2col{grid-template-columns:1fr !important;}}
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+function togglePw(id,btn){const inp=document.getElementById(id);const show=inp.type==='text';inp.type=show?'password':'text';btn.querySelector('i').className=show?'bi bi-eye':'bi bi-eye-slash';}
+</script>
+{% endblock %}

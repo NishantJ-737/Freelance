@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Browse Services — FreelanceHub{% endblock %}
+
+{% block content %}
+<div style="background:var(--ink);padding:40px 0 48px;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 20% 50%,rgba(108,99,255,.3) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div class="fh-breadcrumb" style="margin-bottom:14px;">
+      <a href="{{ url_for('index') }}" style="color:rgba(255,255,255,.4);">Home</a>
+      <span class="fh-breadcrumb-sep" style="color:rgba(255,255,255,.2);">/</span>
+      <span style="color:rgba(255,255,255,.7);">Browse Services</span>
+    </div>
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin-bottom:8px;">Browse Services</h1>
+    <p style="color:rgba(255,255,255,.55);font-size:15px;">{{ total }} service{{ 's' if total != 1 else '' }} found{% if search %} for "<strong style="color:white;">{{ search }}</strong>"{% endif %}{% if selected_category %} in <strong style="color:white;">{{ selected_category }}</strong>{% endif %}</p>
+  </div>
+</div>
+
+<div class="section-pad-sm">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div style="display:grid;grid-template-columns:260px 1fr;gap:28px;align-items:start;">
+
+      <!-- SIDEBAR FILTERS -->
+      <div class="fh-browse-sidebar">
+        <form method="GET" action="{{ url_for('browse') }}" id="filterForm">
+          {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+
+          <!-- Search -->
+          <div style="margin-bottom:20px;">
+            <div class="fh-filter-title">Search</div>
+            <div style="position:relative;">
+              <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-soft);font-size:14px;"></i>
+              <input type="text" name="search" value="{{ search }}" placeholder="Keywords..." class="fh-input" style="padding-left:36px;height:40px;" />
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div style="margin-bottom:20px;">
+            <div class="fh-filter-title">Category</div>
+            <a href="{{ url_for('browse', search=search) }}" class="fh-filter-option {{ 'active' if not selected_category }}">
+              <i class="bi bi-grid-3x3-gap"></i> All Categories
+            </a>
+            {% for cat in categories %}
+            <a href="{{ url_for('browse', category=cat.slug, search=search, sort=sort) }}" class="fh-filter-option {{ 'active' if selected_category == cat.slug }}">
+              {{ cat.icon }} {{ cat.name }}
+            </a>
+            {% endfor %}
+          </div>
+
+          <!-- Price Range -->
+          <div style="margin-bottom:20px;">
+            <div class="fh-filter-title">Budget (Rs.)</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="number" name="min_price" id="min_price" value="{{ min_price or '' }}" placeholder="Min" class="fh-input" style="height:38px;font-size:13px;" />
+              <span style="color:var(--text-soft);font-size:12px;">to</span>
+              <input type="number" name="max_price" id="max_price" value="{{ max_price or '' }}" placeholder="Max" class="fh-input" style="height:38px;font-size:13px;" />
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+              {% for label, mn, mx in [('Under 5K','0','5000'),('5K–20K','5000','20000'),('20K–50K','20000','50000'),('50K+','50000','')] %}
+              <button type="button" onclick="document.querySelector('[name=min_price]').value='{{ mn }}';document.querySelector('[name=max_price]').value='{{ mx }}';document.getElementById('filterForm').submit();"
+                      style="font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text-mid);transition:all .2s;">{{ label }}</button>
+              {% endfor %}
+            </div>
+          </div>
+
+          <input type="hidden" name="sort" value="{{ sort }}">
+          <input type="hidden" name="category" value="{{ selected_category }}">
+          <button type="submit" class="btn-primary-fh btn-sm-fh" style="width:100%;justify-content:center;">
+            <i class="bi bi-funnel"></i> Apply Filters
+          </button>
+          {% if search or selected_category or min_price or max_price %}
+          <a href="{{ url_for('browse') }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;margin-top:8px;">
+            <i class="bi bi-x-circle"></i> Clear Filters
+          </a>
+          {% endif %}
+        </form>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <div>
+        <!-- Sort Bar -->
+        <div class="fh-sort-bar">
+          <span style="font-size:13px;font-weight:600;color:var(--text-mid);margin-right:4px;">Sort by:</span>
+          {% for val, label in [('newest','Newest'),('popular','Most Popular'),('top_rated','Top Rated'),('price_low','Price: Low → High'),('price_high','Price: High → Low')] %}
+          <a href="{{ url_for('browse', search=search, category=selected_category, min_price=min_price, max_price=max_price, sort=val, page=1) }}"
+             class="fh-sort-btn {{ 'active' if sort == val }}">{{ label }}</a>
+          {% endfor %}
+          <span style="margin-left:auto;font-size:13px;color:var(--text-soft);">{{ total }} results</span>
+        </div>
+
+        {% if services %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;margin-bottom:28px;">
+          {% for s in services %}{% include "partials/service_card.html" %}{% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="fh-pagination">
+          {% if page > 1 %}
+          <a href="{{ url_for('browse', search=search, category=selected_category, min_price=min_price, max_price=max_price, sort=sort, page=page-1) }}" class="fh-page-btn"><i class="bi bi-chevron-left"></i></a>
+          {% else %}
+          <span class="fh-page-btn disabled"><i class="bi bi-chevron-left"></i></span>
+          {% endif %}
+
+          {% for p in range(1, total_pages+1) %}
+            {% if p == page %}
+            <span class="fh-page-btn active">{{ p }}</span>
+            {% elif p == 1 or p == total_pages or (p >= page-2 and p <= page+2) %}
+            <a href="{{ url_for('browse', search=search, category=selected_category, min_price=min_price, max_price=max_price, sort=sort, page=p) }}" class="fh-page-btn">{{ p }}</a>
+            {% elif p == page-3 or p == page+3 %}
+            <span class="fh-page-btn disabled" style="border:none;background:none;">…</span>
+            {% endif %}
+          {% endfor %}
+
+          {% if page < total_pages %}
+          <a href="{{ url_for('browse', search=search, category=selected_category, min_price=min_price, max_price=max_price, sort=sort, page=page+1) }}" class="fh-page-btn"><i class="bi bi-chevron-right"></i></a>
+          {% else %}
+          <span class="fh-page-btn disabled"><i class="bi bi-chevron-right"></i></span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="fh-empty-state">
+          <div class="fh-empty-icon">🔍</div>
+          <div class="fh-empty-title">No services found</div>
+          <p class="fh-empty-sub">Try different keywords or remove some filters</p>
+          <a href="{{ url_for('browse') }}" class="btn-primary-fh">Browse All Services</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media(max-width:900px){
+  .container > div[style*="grid-template-columns:260px"] { grid-template-columns:1fr !important; }
+  .fh-browse-sidebar { position:static !important; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}{{ service.title }} — FreelanceHub{% endblock %}
+
+{% block content %}
+<div style="background:var(--surface-2);padding:12px 0;border-bottom:1px solid var(--border);">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div class="fh-breadcrumb">
+      <a href="{{ url_for('index') }}">Home</a>
+      <span class="fh-breadcrumb-sep">/</span>
+      <a href="{{ url_for('browse') }}">Browse</a>
+      <span class="fh-breadcrumb-sep">/</span>
+      <a href="{{ url_for('browse', category=service.category_slug) }}">{{ service.category_name }}</a>
+      <span class="fh-breadcrumb-sep">/</span>
+      <span style="color:var(--text);">{{ service.title | truncate(40) }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:32px;align-items:start;" class="service-detail-grid">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <!-- Service Image -->
+        <div style="border-radius:var(--radius-lg);overflow:hidden;margin-bottom:28px;border:1.5px solid var(--border);">
+          <img src="{{ service.image_url or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=600&fit=crop' }}"
+               alt="{{ service.title }}"
+               style="width:100%;height:380px;object-fit:cover;display:block;"
+               onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=600&fit=crop'" />
+        </div>
+
+        <!-- Title & Meta -->
+        <span class="fh-badge-accent" style="margin-bottom:12px;display:inline-flex;">{{ service.category_name }}</span>
+        <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:800;color:var(--ink);margin-bottom:14px;line-height:1.2;">{{ service.title }}</h1>
+
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+          {% if service.avg_rating > 0 %}
+          <div class="fh-service-rating">
+            <span class="fh-stars">{{ service.avg_rating | stars }}</span>
+            <span class="fh-rating-num" style="font-size:14px;">{{ "%.1f"|format(service.avg_rating) }}</span>
+            <span class="fh-review-count">({{ service.review_count }} reviews)</span>
+          </div>
+          {% endif %}
+          <span class="fh-delivery-tag"><i class="bi bi-clock"></i> {{ service.delivery_days or 3 }} day delivery</span>
+          <span style="font-size:13px;color:var(--text-soft);"><i class="bi bi-eye me-1"></i>{{ service.view_count }} views</span>
+        </div>
+
+        <!-- Tags -->
+        {% if tags %}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;">
+          {% for tag in tags %}
+          <a href="{{ url_for('browse', search=tag) }}" class="fh-tag-chip">#{{ tag }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Description -->
+        <div class="fh-panel" style="margin-bottom:24px;">
+          <div class="fh-panel-title">About this service</div>
+          <p style="font-size:15px;color:var(--text-mid);line-height:1.75;white-space:pre-wrap;">{{ service.description }}</p>
+        </div>
+
+        <!-- Pre-Purchase Inquiry / Chat -->
+        {% if current_user and current_user.id != service.seller_id %}
+        <div class="fh-inquiry-box" style="margin-bottom:24px;">
+          <div class="fh-inquiry-header">
+            <div class="fh-inquiry-icon"><i class="bi bi-chat-dots-fill"></i></div>
+            <div>
+              <div class="fh-inquiry-title">
+                {% if existing_inquiry %}💬 Your Conversation with {{ service.seller_name }}{% else %}💬 Message the Seller{% endif %}
+              </div>
+              <div class="fh-inquiry-subtitle">
+                {% if existing_inquiry %}Chat before you pay — clarify requirements, ask questions{% else %}Ask questions before ordering — discuss your requirements{% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if inquiry_messages %}
+          <div class="fh-inquiry-messages" id="inquiryMsgs">
+            {% for msg in inquiry_messages %}
+            <div class="fh-inquiry-msg {{ 'mine' if msg.sender_id == current_user.id else 'theirs' }}">
+              <div class="fh-inquiry-sender">{{ msg.sender_name }} · {{ msg.created_at | time_ago }}</div>
+              <div class="fh-inquiry-bubble {{ 'mine' if msg.sender_id == current_user.id else 'theirs' }}">{{ msg.content }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if existing_inquiry %}
+          <form action="{{ url_for('reply_inquiry', service_id=service.id) }}" method="POST" style="display:flex;gap:8px;align-items:flex-end;">
+            <textarea name="message" class="fh-textarea" placeholder="Continue the conversation..." style="min-height:70px;flex:1;" required></textarea>
+            <button type="submit" class="btn-primary-fh" style="align-self:flex-end;flex-shrink:0;height:70px;padding:0 20px;">Send <i class="bi bi-send-fill"></i></button>
+          </form>
+          {% else %}
+          <form action="{{ url_for('start_inquiry', service_id=service.id) }}" method="POST" style="display:flex;gap:8px;align-items:flex-end;">
+            <textarea name="message" class="fh-textarea" placeholder="Hi! I'm interested in this service. I need..." style="min-height:80px;flex:1;" required></textarea>
+            <button type="submit" class="btn-primary-fh" style="align-self:flex-end;flex-shrink:0;height:80px;padding:0 20px;">Send <i class="bi bi-send-fill"></i></button>
+          </form>
+          <p style="font-size:12px;color:var(--text-soft);margin-top:8px;"><i class="bi bi-shield-check me-1"></i>Sellers typically reply within a few hours. Once you're both aligned, proceed to payment for a private order chat.</p>
+          {% endif %}
+        </div>
+        {% elif not current_user %}
+        <div class="fh-panel" style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:2rem;margin-bottom:10px;">💬</div>
+          <div style="font-family:var(--font-display);font-weight:700;margin-bottom:6px;">Have questions?</div>
+          <p style="font-size:14px;color:var(--text-soft);margin-bottom:16px;">Log in to message the seller before ordering.</p>
+          <a href="{{ url_for('login') }}" class="btn-outline-fh btn-sm-fh">Log In to Chat</a>
+        </div>
+        {% endif %}
+
+        <!-- Reviews -->
+        <div class="fh-panel" style="margin-bottom:24px;">
+          <div class="fh-panel-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Reviews <span style="color:var(--text-soft);font-size:14px;font-weight:400;">({{ service.review_count }})</span></span>
+            {% if service.avg_rating > 0 %}
+            <span style="font-size:22px;font-weight:800;font-family:var(--font-display);color:var(--ink);">{{ "%.1f"|format(service.avg_rating) }} <span style="color:var(--gold);">★</span></span>
+            {% endif %}
+          </div>
+
+          {% if reviews %}
+          <div style="display:flex;flex-direction:column;gap:18px;">
+            {% for rv in reviews %}
+            <div style="border-bottom:1px solid var(--border);padding-bottom:18px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div class="fh-seller-avatar-sm">{{ rv.reviewer_name[0]|upper }}</div>
+                <div>
+                  <div style="font-weight:600;font-size:14px;color:var(--ink);">{{ rv.reviewer_name }}</div>
+                  <div style="font-size:11px;color:var(--text-soft);">{{ rv.created_at | time_ago }}</div>
+                </div>
+                <div class="fh-stars" style="margin-left:auto;">{{ rv.rating | stars }}</div>
+              </div>
+              {% if rv.comment %}
+              <p style="font-size:14px;color:var(--text-mid);line-height:1.65;margin:0;">{{ rv.comment }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="text-align:center;padding:24px;color:var(--text-soft);">
+            <div style="font-size:2rem;margin-bottom:8px;">⭐</div>
+            <p style="font-size:14px;">No reviews yet. Be the first to work with {{ service.seller_name }}!</p>
+          </div>
+          {% endif %}
+
+          <!-- Submit Review -->
+          {% if can_review %}
+          <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:20px;">
+            <div style="font-family:var(--font-display);font-weight:700;margin-bottom:14px;">Leave Your Review</div>
+            <form action="{{ url_for('submit_review', service_id=service.id) }}" method="POST">
+              <div style="margin-bottom:14px;">
+                <div class="fh-star-input" id="starInput">
+                  {% for i in [5,4,3,2,1] %}
+                  <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" class="d-none">
+                  <label for="star{{ i }}" class="fh-star-label" title="{{ i }} stars">★</label>
+                  {% endfor %}
+                </div>
+              </div>
+              <textarea name="comment" class="fh-textarea" placeholder="Share your experience..." style="min-height:90px;"></textarea>
+              <button type="submit" class="btn-primary-fh btn-sm-fh" style="margin-top:12px;">Submit Review</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Related Services -->
+        {% if related %}
+        <div>
+          <div style="font-family:var(--font-display);font-weight:800;font-size:18px;margin-bottom:16px;">Similar Services</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+            {% for s in related %}{% include "partials/service_card.html" %}{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- RIGHT COLUMN — STICKY SIDEBAR -->
+      <div style="position:sticky;top:88px;">
+        <!-- Pricing Card -->
+        <div class="fh-panel" style="margin-bottom:16px;">
+          <div style="font-size:13px;color:var(--text-soft);margin-bottom:4px;">Starting price</div>
+          <div style="font-family:var(--font-display);font-size:2.2rem;font-weight:800;color:var(--ink);margin-bottom:4px;">{{ service.price | inr }}</div>
+          <div style="font-size:13px;color:var(--text-soft);margin-bottom:20px;display:flex;align-items:center;gap:6px;">
+            <i class="bi bi-clock"></i> {{ service.delivery_days or 3 }}-day delivery
+          </div>
+
+          {% if current_user and current_user.id != service.seller_id %}
+          <a href="{{ url_for('checkout', service_id=service.id) }}" class="btn-primary-fh" style="width:100%;justify-content:center;margin-bottom:10px;">
+            Continue to Payment <i class="bi bi-arrow-right"></i>
+          </a>
+          <form action="{{ url_for('toggle_save', service_id=service.id) }}" method="POST">
+            <button type="submit" class="btn-outline-fh" style="width:100%;justify-content:center;">
+              <i class="bi bi-heart{{ '-fill' if is_saved else '' }}" style="{{ 'color:var(--accent-2);' if is_saved else '' }}"></i>
+              {{ 'Saved' if is_saved else 'Save Service' }}
+            </button>
+          </form>
+          {% elif not current_user %}
+          <a href="{{ url_for('login') }}" class="btn-primary-fh" style="width:100%;justify-content:center;">
+            Login to Order <i class="bi bi-arrow-right"></i>
+          </a>
+          {% else %}
+          <div class="fh-alert fh-alert-info" style="text-align:center;font-size:13px;">This is your service listing</div>
+          <a href="{{ url_for('edit_service', service_id=service.id) }}" class="btn-outline-fh" style="width:100%;justify-content:center;margin-top:8px;">
+            <i class="bi bi-pencil"></i> Edit Service
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Seller Card -->
+        <div class="fh-panel">
+          <div class="fh-panel-title">About the Seller</div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <a href="{{ url_for('profile', user_id=service.seller_id) }}" class="fh-avatar" style="width:52px;height:52px;font-size:20px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:white;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;text-decoration:none;">{{ service.seller_name[0]|upper }}</a>
+            <div>
+              <a href="{{ url_for('profile', user_id=service.seller_id) }}" style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);text-decoration:none;">{{ service.seller_name }}</a>
+              <div style="font-size:12px;color:var(--text-soft);">{{ seller_order_count }} orders completed</div>
+            </div>
+          </div>
+
+          {% if service.avg_rating > 0 %}
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+            <span class="fh-stars">{{ service.avg_rating | stars }}</span>
+            <span style="font-size:13px;color:var(--text-mid);">{{ "%.1f"|format(service.avg_rating) }} avg. rating</span>
+          </div>
+          {% endif %}
+
+          {% if service.seller_bio %}
+          <p style="font-size:13.5px;color:var(--text-mid);line-height:1.65;margin-bottom:14px;">{{ service.seller_bio | truncate(140) }}</p>
+          {% endif %}
+
+          <div style="font-size:12px;color:var(--text-soft);margin-bottom:14px;">
+            <i class="bi bi-calendar3 me-1"></i> Member since {{ service.seller_joined[:7] }}
+          </div>
+
+          <a href="{{ url_for('profile', user_id=service.seller_id) }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;">
+            View Full Profile
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+@media(max-width:900px){.service-detail-grid{grid-template-columns:1fr !important;}}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Scroll inquiry messages to bottom
+const iq = document.getElementById('inquiryMsgs');
+if (iq) iq.scrollTop = iq.scrollHeight;
+</script>
+{% endblock %}

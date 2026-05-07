@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv
+venv/
+*.db
+*.sqlite3
+freelancehub/static/uploads/*
+!freelancehub/static/uploads/.gitkeep
+.DS_Store
+*.egg-info/
+dist/
+build/

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}FreelanceHub — India's Premium Freelance Marketplace{% endblock %}
+
+{% block content %}
+<!-- ══════ HERO ══════ -->
+<section class="fh-hero">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div class="fh-hero-content">
+      <div class="fh-hero-eyebrow">
+        <i class="bi bi-lightning-charge-fill"></i> India's #1 Freelance Marketplace
+      </div>
+      <h1>
+        Find the perfect<br>
+        <span class="gradient-text">freelance services</span><br>
+        for your vision
+      </h1>
+      <p class="fh-hero-sub">Connect with top Indian freelancers in design, development, writing, marketing and more. Fast. Secure. Quality guaranteed.</p>
+
+      <!-- Hero Search -->
+      <div class="fh-hero-search">
+        <div class="fh-hero-search-inner">
+          <span class="fh-hero-search-icon"><i class="bi bi-search"></i></span>
+          <input id="hero-search" type="text" placeholder="Try 'logo design', 'React website', 'blog writing'..."
+                 oninput="heroAutocomplete(this.value)"
+                 onkeydown="if(event.key==='Enter'){window.location='/browse?search='+encodeURIComponent(this.value)}"
+                 autocomplete="off" />
+          <button class="fh-hero-search-submit" onclick="window.location='/browse?search='+encodeURIComponent(document.getElementById('hero-search').value)">
+            Search
+          </button>
+        </div>
+        <div id="hero-autocomplete-results" class="autocomplete-dropdown" style="display:none;border-radius:0 0 20px 20px;"></div>
+      </div>
+
+      <div class="fh-hero-tags">
+        <span style="font-size:12px;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:6px;"><i class="bi bi-lightning-fill" style="color:var(--gold);"></i>Trending:</span>
+        {% for tag, slug in [("Logo Design","design"),("React Development","development"),("SEO Content","writing"),("Video Editing","video"),("Social Media","marketing"),("Data Analysis","data")] %}
+        <a href="{{ url_for('browse', category=slug) }}" class="fh-hero-tag">{{ tag }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ STATS BAR ══════ -->
+<section class="fh-stats-bar">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;">
+      <div class="fh-stat" style="padding:0 40px;">
+        <span class="fh-stat-num">{{ total_services }}+</span>
+        <span class="fh-stat-label">Services Listed</span>
+      </div>
+      <div class="fh-stat-divider"></div>
+      <div class="fh-stat" style="padding:0 40px;">
+        <span class="fh-stat-num">{{ total_sellers }}+</span>
+        <span class="fh-stat-label">Expert Freelancers</span>
+      </div>
+      <div class="fh-stat-divider"></div>
+      <div class="fh-stat" style="padding:0 40px;">
+        <span class="fh-stat-num">{{ total_orders }}+</span>
+        <span class="fh-stat-label">Orders Completed</span>
+      </div>
+      <div class="fh-stat-divider"></div>
+      <div class="fh-stat" style="padding:0 40px;">
+        <span class="fh-stat-num">4.9★</span>
+        <span class="fh-stat-label">Average Rating</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ CATEGORIES ══════ -->
+<section class="section-pad" style="background:var(--surface);">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="fh-section-eyebrow">Browse by Category</div>
+        <h2 class="fh-section-title">Find exactly what you need</h2>
+        <p class="fh-section-subtitle">{{ categories|length }} categories covering every skill you can imagine</p>
+      </div>
+      <a href="{{ url_for('browse') }}" class="btn-outline-fh btn-sm-fh">View All Services <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;">
+      {% for cat in categories %}
+      <a href="{{ url_for('browse', category=cat.slug) }}" class="fh-cat-card">
+        <span class="fh-cat-icon">{{ cat.icon }}</span>
+        <span class="fh-cat-name">{{ cat.name }}</span>
+        <span class="fh-cat-count">{{ cat.service_count }} services</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════ TRENDING ══════ -->
+<section class="section-pad" style="background:var(--surface-2);">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="fh-section-eyebrow">🔥 Hot Right Now</div>
+        <h2 class="fh-section-title">Trending Services</h2>
+        <p class="fh-section-subtitle">Most viewed by clients this week</p>
+      </div>
+      <a href="{{ url_for('trending') }}" class="btn-outline-fh btn-sm-fh">See All Trending <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+      {% for s in trending %}{% include "partials/service_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════ TRUST SECTION ══════ -->
+<section class="fh-trust-section">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div style="text-align:center;margin-bottom:40px;position:relative;z-index:1;">
+      <div class="fh-section-eyebrow" style="color:var(--gold-light);">Why FreelanceHub?</div>
+      <h2 class="fh-section-title" style="color:white;">Built for trust &amp; quality</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;position:relative;z-index:1;">
+      {% for icon, title, desc in [
+        ("🔒","Secure Payments","All transactions are encrypted and held safely until work is delivered"),
+        ("💬","Pre-Purchase Chat","Discuss requirements with sellers before committing any payment"),
+        ("⭐","Verified Reviews","Only buyers who completed orders can leave reviews — no fakes"),
+        ("🛡️","Satisfaction Promise","Dispute resolution by our team if anything goes wrong"),
+        ("⚡","Fast Delivery","Choose sellers by delivery time — as fast as 24 hours"),
+        ("🇮🇳","Made in India","Built specifically for the Indian freelance ecosystem")
+      ] %}
+      <div class="fh-trust-item">
+        <span class="fh-trust-icon">{{ icon }}</span>
+        <div class="fh-trust-title">{{ title }}</div>
+        <div class="fh-trust-desc">{{ desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════ FEATURED SERVICES ══════ -->
+<section class="section-pad" style="background:var(--surface);">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="fh-section-eyebrow">✨ Handpicked</div>
+        <h2 class="fh-section-title">Featured Services</h2>
+        <p class="fh-section-subtitle">Quality services from our top-rated freelancers</p>
+      </div>
+      <a href="{{ url_for('recommendations') }}" class="btn-outline-fh btn-sm-fh">Personalised Picks <i class="bi bi-stars"></i></a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+      {% for s in featured %}{% include "partials/service_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════ TESTIMONIALS ══════ -->
+<section class="section-pad" style="background:var(--surface-2);">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+    <div class="fh-section-header" style="text-align:center;">
+      <div class="fh-section-eyebrow">Loved by Clients</div>
+      <h2 class="fh-section-title">What our community says</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+      {% for quote, name, role in [
+        ("FreelanceHub helped me find an incredible logo designer in under 24 hours. The quality was outstanding and the price was totally fair. The pre-purchase chat feature really builds confidence!","Rahul Mehta","Startup Founder, Mumbai"),
+        ("As a freelancer, this platform has completely transformed my income. The interface is beautiful, orders come regularly, and the payment system is rock-solid.","Priya Sharma","UI/UX Designer, Bengaluru"),
+        ("I've used Fiverr and Upwork — FreelanceHub blows them out of the water for Indian projects. Local context, rupee payments, and way faster response times.","Amit Verma","Marketing Head, Delhi"),
+      ] %}
+      <div class="fh-testimonial">
+        <div style="color:var(--gold);font-size:16px;margin-bottom:12px;">★★★★★</div>
+        <p class="fh-testimonial-text">"{{ quote }}"</p>
+        <div class="fh-testimonial-author">
+          <div class="fh-seller-avatar-sm" style="width:36px;height:36px;font-size:14px;">{{ name[0] }}</div>
+          <div>
+            <div class="fh-testimonial-name">{{ name }}</div>
+            <div class="fh-testimonial-role">{{ role }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════ CTA ══════ -->
+<section class="section-pad" style="background:var(--accent);position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%, rgba(255,255,255,.1) 0%,transparent 70%);pointer-events:none;"></div>
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;text-align:center;position:relative;z-index:1;">
+    <div style="font-size:2rem;margin-bottom:12px;">🚀</div>
+    <h2 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin-bottom:12px;">Ready to get started?</h2>
+    <p style="font-size:16px;color:rgba(255,255,255,.8);margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto;">Join thousands of businesses and freelancers growing together on FreelanceHub</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      {% if not current_user %}
+      <a href="{{ url_for('signup') }}" class="btn-dark-fh">Get Started Free <i class="bi bi-arrow-right"></i></a>
+      <a href="{{ url_for('browse') }}" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 28px;border-radius:var(--radius-lg);background:rgba(255,255,255,.15);color:white;font-family:var(--font-display);font-weight:700;font-size:15px;text-decoration:none;border:2px solid rgba(255,255,255,.3);transition:all .22s;">Browse Services</a>
+      {% else %}
+      <a href="{{ url_for('browse') }}" class="btn-dark-fh">Browse Services <i class="bi bi-arrow-right"></i></a>
+      {% if current_user.role == 'seller' %}
+      <a href="{{ url_for('post_service') }}" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 28px;border-radius:var(--radius-lg);background:rgba(255,255,255,.15);color:white;font-family:var(--font-display);font-weight:700;font-size:15px;text-decoration:none;border:2px solid rgba(255,255,255,.3);">Post a Service</a>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let heroTimer;
+function heroAutocomplete(q) {
+  clearTimeout(heroTimer);
+  const box = document.getElementById('hero-autocomplete-results');
+  if (!q || q.length < 2) { box.style.display='none'; return; }
+  heroTimer = setTimeout(async () => {
+    const res = await fetch('/api/search-autocomplete?q=' + encodeURIComponent(q));
+    const data = await res.json();
+    if (!data.length) { box.style.display='none'; return; }
+    box.innerHTML = data.map(r =>
+      `<a href="/services/${r.id}" class="autocomplete-item">
+        <i class="bi bi-search" style="color:var(--text-soft);font-size:13px;"></i>
+        <span style="flex:1;">${r.title}</span>
+        <span class="cat-badge">${r.category}</span>
+        <span class="price-tag">Rs.${r.price.toLocaleString('en-IN')}</span>
+      </a>`
+    ).join('');
+    box.style.display = 'block';
+  }, 220);
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.fh-hero-search')) {
+    const box = document.getElementById('hero-autocomplete-results');
+    if (box) box.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

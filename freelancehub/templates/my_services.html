@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}My Services — FreelanceHub{% endblock %}
+{% block content %}
+<div style="background:var(--ink);padding:32px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 20% 50%,rgba(108,99,255,.25) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">Seller Dashboard</div>
+        <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin-bottom:4px;">My Services</h1>
+        <p style="color:rgba(255,255,255,.5);font-size:14px;">{{ services|length }} active listing{{ 's' if services|length != 1 else '' }}</p>
+      </div>
+      <a href="{{ url_for('post_service') }}" class="btn-gold-fh"><i class="bi bi-plus-circle me-2"></i>Post New Service</a>
+    </div>
+  </div>
+</div>
+
+<div class="section-pad-sm">
+  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+
+    <!-- Stats Row -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+      {% for icon, bg, label, value in [
+        ("bi-eye-fill","rgba(108,99,255,.1)","Total Views", total_views),
+        ("bi-bag-check-fill","rgba(67,217,173,.1)","Active Orders", active_orders),
+        ("bi-hourglass-split","rgba(245,166,35,.1)","Pending Orders", pending_orders),
+        ("bi-cash-stack","rgba(255,101,132,.1)","Total Earnings", total_earnings | inr)
+      ] %}
+      <div class="fh-dash-stat">
+        <div class="fh-dash-stat-icon" style="background:{{ bg }};color:var(--accent);">
+          <i class="bi {{ icon }}"></i>
+        </div>
+        <div>
+          <div class="fh-dash-stat-num">{{ value }}</div>
+          <div class="fh-dash-stat-label">{{ label }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if services %}
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      {% for s in services %}
+      <div style="background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;gap:16px;align-items:center;transition:all var(--transition);" class="hover-lift">
+        <img src="{{ s.image_url or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=120&fit=crop' }}"
+             alt="{{ s.title }}" style="width:100px;height:72px;object-fit:cover;border-radius:var(--radius-md);flex-shrink:0;"
+             onerror="this.style.display='none'" />
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+            <span style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);">{{ s.title }}</span>
+            {% if not s.is_approved %}
+            <span class="fh-badge-red" style="font-size:11px;">Hidden by Admin</span>
+            {% endif %}
+          </div>
+          <div style="font-size:12px;color:var(--text-soft);display:flex;gap:14px;flex-wrap:wrap;">
+            <span><i class="bi bi-tag me-1"></i>{{ s.category_name }}</span>
+            <span><i class="bi bi-eye me-1"></i>{{ s.view_count }} views</span>
+            <span><i class="bi bi-bag me-1"></i>{{ s.order_count }} orders</span>
+            {% if s.avg_rating > 0 %}<span><i class="bi bi-star-fill me-1" style="color:var(--gold);"></i>{{ "%.1f"|format(s.avg_rating) }} ({{ s.review_count }})</span>{% endif %}
+            <span style="color:var(--ink);font-weight:600;"><i class="bi bi-currency-rupee me-1"></i>{{ s.price | inr }}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+          <a href="{{ url_for('service_detail', service_id=s.id) }}" class="btn-outline-fh btn-sm-fh" title="View"><i class="bi bi-eye"></i></a>
+          <a href="{{ url_for('edit_service', service_id=s.id) }}" class="btn-outline-fh btn-sm-fh" title="Edit"><i class="bi bi-pencil"></i></a>
+          <form method="POST" action="{{ url_for('delete_service', service_id=s.id) }}" onsubmit="return confirm('Delete this service permanently?')">
+            <button type="submit" class="btn-outline-fh btn-sm-fh" style="color:var(--accent-2);border-color:var(--accent-2);" title="Delete"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="fh-empty-state">
+      <div class="fh-empty-icon">🚀</div>
+      <div class="fh-empty-title">No services yet</div>
+      <div class="fh-empty-sub">Create your first service and start earning today</div>
+      <a href="{{ url_for('post_service') }}" class="btn-primary-fh">Post Your First Service</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
