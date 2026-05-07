@@ -4,7 +4,7 @@
 {% block content %}
 <!-- ══════ HERO ══════ -->
 <section class="fh-hero">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+  <div class="container">
     <div class="fh-hero-content">
       <div class="fh-hero-eyebrow">
         <i class="bi bi-lightning-charge-fill"></i> India's #1 Freelance Marketplace
@@ -16,7 +16,6 @@
       </h1>
       <p class="fh-hero-sub">Connect with top Indian freelancers in design, development, writing, marketing and more. Fast. Secure. Quality guaranteed.</p>
 
-      <!-- Hero Search -->
       <div class="fh-hero-search">
         <div class="fh-hero-search-inner">
           <span class="fh-hero-search-icon"><i class="bi bi-search"></i></span>
@@ -43,24 +42,24 @@
 
 <!-- ══════ STATS BAR ══════ -->
 <section class="fh-stats-bar">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
-    <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;">
-      <div class="fh-stat" style="padding:0 40px;">
+  <div class="container">
+    <div class="fh-stats-bar-inner">
+      <div class="fh-stat" style="padding:0 32px;">
         <span class="fh-stat-num">{{ total_services }}+</span>
         <span class="fh-stat-label">Services Listed</span>
       </div>
       <div class="fh-stat-divider"></div>
-      <div class="fh-stat" style="padding:0 40px;">
+      <div class="fh-stat" style="padding:0 32px;">
         <span class="fh-stat-num">{{ total_sellers }}+</span>
         <span class="fh-stat-label">Expert Freelancers</span>
       </div>
       <div class="fh-stat-divider"></div>
-      <div class="fh-stat" style="padding:0 40px;">
+      <div class="fh-stat" style="padding:0 32px;">
         <span class="fh-stat-num">{{ total_orders }}+</span>
         <span class="fh-stat-label">Orders Completed</span>
       </div>
       <div class="fh-stat-divider"></div>
-      <div class="fh-stat" style="padding:0 40px;">
+      <div class="fh-stat" style="padding:0 32px;">
         <span class="fh-stat-num">4.9★</span>
         <span class="fh-stat-label">Average Rating</span>
       </div>
@@ -70,8 +69,8 @@
 
 <!-- ══════ CATEGORIES ══════ -->
 <section class="section-pad" style="background:var(--surface);">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
-    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <div class="container">
+    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;">
       <div>
         <div class="fh-section-eyebrow">Browse by Category</div>
         <h2 class="fh-section-title">Find exactly what you need</h2>
@@ -79,7 +78,7 @@
       </div>
       <a href="{{ url_for('browse') }}" class="btn-outline-fh btn-sm-fh">View All Services <i class="bi bi-arrow-right"></i></a>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;">
+    <div class="fh-cat-grid">
       {% for cat in categories %}
       <a href="{{ url_for('browse', category=cat.slug) }}" class="fh-cat-card">
         <span class="fh-cat-icon">{{ cat.icon }}</span>
@@ -93,8 +92,8 @@
 
 <!-- ══════ TRENDING ══════ -->
 <section class="section-pad" style="background:var(--surface-2);">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
-    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <div class="container">
+    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;">
       <div>
         <div class="fh-section-eyebrow">🔥 Hot Right Now</div>
         <h2 class="fh-section-title">Trending Services</h2>
@@ -102,7 +101,7 @@
       </div>
       <a href="{{ url_for('trending') }}" class="btn-outline-fh btn-sm-fh">See All Trending <i class="bi bi-arrow-right"></i></a>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+    <div class="fh-service-grid">
       {% for s in trending %}{% include "partials/service_card.html" %}{% endfor %}
     </div>
   </div>
@@ -110,12 +109,12 @@
 
 <!-- ══════ TRUST SECTION ══════ -->
 <section class="fh-trust-section">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
+  <div class="container">
     <div style="text-align:center;margin-bottom:40px;position:relative;z-index:1;">
       <div class="fh-section-eyebrow" style="color:var(--gold-light);">Why FreelanceHub?</div>
       <h2 class="fh-section-title" style="color:white;">Built for trust &amp; quality</h2>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;position:relative;z-index:1;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:28px;position:relative;z-index:1;">
       {% for icon, title, desc in [
         ("🔒","Secure Payments","All transactions are encrypted and held safely until work is delivered"),
         ("💬","Pre-Purchase Chat","Discuss requirements with sellers before committing any payment"),
@@ -136,8 +135,8 @@
 
 <!-- ══════ FEATURED SERVICES ══════ -->
 <section class="section-pad" style="background:var(--surface);">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
-    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <div class="container">
+    <div class="fh-section-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;">
       <div>
         <div class="fh-section-eyebrow">✨ Handpicked</div>
         <h2 class="fh-section-title">Featured Services</h2>
@@ -145,7 +144,7 @@
       </div>
       <a href="{{ url_for('recommendations') }}" class="btn-outline-fh btn-sm-fh">Personalised Picks <i class="bi bi-stars"></i></a>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+    <div class="fh-service-grid">
       {% for s in featured %}{% include "partials/service_card.html" %}{% endfor %}
     </div>
   </div>
@@ -153,12 +152,12 @@
 
 <!-- ══════ TESTIMONIALS ══════ -->
 <section class="section-pad" style="background:var(--surface-2);">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
-    <div class="fh-section-header" style="text-align:center;">
+  <div class="container">
+    <div class="fh-section-header" style="text-align:center;margin-bottom:28px;">
       <div class="fh-section-eyebrow">Loved by Clients</div>
       <h2 class="fh-section-title">What our community says</h2>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:1000px;margin:0 auto;">
       {% for quote, name, role in [
         ("FreelanceHub helped me find an incredible logo designer in under 24 hours. The quality was outstanding and the price was totally fair. The pre-purchase chat feature really builds confidence!","Rahul Mehta","Startup Founder, Mumbai"),
         ("As a freelancer, this platform has completely transformed my income. The interface is beautiful, orders come regularly, and the payment system is rock-solid.","Priya Sharma","UI/UX Designer, Bengaluru"),
@@ -183,7 +182,7 @@
 <!-- ══════ CTA ══════ -->
 <section class="section-pad" style="background:var(--accent);position:relative;overflow:hidden;">
   <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%, rgba(255,255,255,.1) 0%,transparent 70%);pointer-events:none;"></div>
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;text-align:center;position:relative;z-index:1;">
+  <div class="container" style="text-align:center;position:relative;z-index:1;">
     <div style="font-size:2rem;margin-bottom:12px;">🚀</div>
     <h2 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin-bottom:12px;">Ready to get started?</h2>
     <p style="font-size:16px;color:rgba(255,255,255,.8);margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto;">Join thousands of businesses and freelancers growing together on FreelanceHub</p>
@@ -200,7 +199,6 @@
     </div>
   </div>
 </section>
-
 {% endblock %}
 
 {% block scripts %}
