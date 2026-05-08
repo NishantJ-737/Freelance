@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
 :root {
   --ink:        #0a0a0f;
@@ -26,7 +26,7 @@
   --radius-lg:  22px;
   --radius-xl:  32px;
   --transition: 0.22s cubic-bezier(.4,0,.2,1);
-  --font-display:'Syne',sans-serif;
+  --font-display:'Poppins',sans-serif;
   --font-body:   'DM Sans',sans-serif;
 }
 
@@ -45,12 +45,17 @@ body {
   font-size:15px;
   line-height:1.65;
   -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-kerning:normal;
+  font-stretch:normal;
+  font-synthesis:none;
   width:100%;
   max-width:100%;
   overflow-x:hidden;
 }
 
-h1,h2,h3,h4,h5,h6{font-family:var(--font-display);color:var(--ink);letter-spacing:-.02em;line-height:1.15;}
+h1,h2,h3,h4,h5,h6{font-family:var(--font-display);color:var(--ink);letter-spacing:-.015em;line-height:1.15;}
 a{color:var(--accent);text-decoration:none;transition:color var(--transition);}
 a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
 
@@ -95,7 +100,7 @@ a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
 .fh-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
 .fh-logo-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .fh-logo-wordmark{display:flex;flex-direction:column;line-height:1;}
-.fh-logo-main{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--ink);letter-spacing:-.03em;}
+.fh-logo-main{font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--ink);letter-spacing:-.012em;}
 .fh-logo-sub{font-family:var(--font-body);font-size:9px;font-weight:500;color:var(--text-soft);letter-spacing:.12em;text-transform:uppercase;}
 
 .fh-search-wrap{flex:1;max-width:380px;position:relative;margin:0 8px;}
@@ -173,7 +178,7 @@ a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
 .fh-hero::after{content:'';position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;opacity:.6;}
 .fh-hero-content{position:relative;z-index:1;text-align:center;}
 .fh-hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:20px;padding:6px 14px;border-radius:99px;border:1px solid rgba(245,166,35,.3);background:rgba(245,166,35,.08);}
-.fh-hero h1{font-family:var(--font-display);font-size:clamp(2.2rem,4.5vw,3.8rem);font-weight:800;color:white;line-height:1.1;margin-bottom:20px;letter-spacing:-.03em;}
+.fh-hero h1{font-family:var(--font-display);font-size:clamp(2.2rem,4.5vw,3.8rem);font-weight:700;color:white;line-height:1.1;margin-bottom:20px;letter-spacing:-.015em;}
 .gradient-text{background:linear-gradient(135deg,var(--gold),var(--accent-2),var(--accent-3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .fh-hero-sub{font-size:16px;color:rgba(255,255,255,.65);max-width:520px;margin:0 auto 32px;line-height:1.6;}
 
@@ -194,7 +199,7 @@ a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
 ══════════════════════════════════ */
 .fh-stats-bar{background:var(--surface-2);border-bottom:1px solid var(--border);padding:22px 0;}
 .fh-stat{text-align:center;padding:0 28px;}
-.fh-stat-num{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--ink);display:block;letter-spacing:-.03em;}
+.fh-stat-num{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--ink);display:block;letter-spacing:-.012em;}
 .fh-stat-label{font-size:12px;color:var(--text-soft);font-weight:500;letter-spacing:.04em;}
 .fh-stat-divider{width:1px;height:36px;background:var(--border);}
 
