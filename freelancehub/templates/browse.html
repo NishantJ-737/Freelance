@@ -88,7 +88,7 @@
         </div>
 
         {% if services %}
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;margin-bottom:28px;">
+        <div class="fh-service-grid" style="margin-bottom:28px;">
           {% for s in services %}{% include "partials/service_card.html" %}{% endfor %}
         </div>
 

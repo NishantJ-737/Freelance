@@ -22,7 +22,7 @@
 <div class="section-pad">
   <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
     {% if services %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+    <div class="fh-service-grid">
       {% for s in services %}{% include "partials/service_card.html" %}{% endfor %}
     </div>
     {% else %}

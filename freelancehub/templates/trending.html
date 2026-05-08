@@ -13,7 +13,7 @@
   <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
     {% if services %}
     <!-- Top 3 featured -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:28px;" class="trending-top3">
+    <div class="fh-service-grid trending-top3" style="margin-bottom:28px;">
       {% for s in services[:3] %}
       <div style="position:relative;">
         <div style="position:absolute;top:-12px;left:16px;z-index:2;font-family:var(--font-display);font-size:11px;font-weight:800;padding:4px 12px;border-radius:99px;
@@ -25,7 +25,7 @@
       {% endfor %}
     </div>
     <!-- Rest -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;">
+    <div class="fh-service-grid">
       {% for s in services[3:] %}{% include "partials/service_card.html" %}{% endfor %}
     </div>
     {% else %}
