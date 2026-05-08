@@ -14,16 +14,18 @@
       <div class="fh-seller-avatar-sm">{{ s.seller_name[0]|upper }}</div>
       <span class="fh-seller-name">{{ s.seller_name }}</span>
     </div>
-    <a href="{{ url_for('service_detail', service_id=s.id) }}" style="text-decoration:none;">
+    <a href="{{ url_for('service_detail', service_id=s.id) }}" class="fh-service-title-link">
       <div class="fh-service-title">{{ s.title }}</div>
     </a>
-    {% if s.avg_rating > 0 %}
     <div class="fh-service-rating">
+      {% if s.avg_rating > 0 %}
       <span class="fh-stars">{{ s.avg_rating | stars }}</span>
       <span class="fh-rating-num">{{ "%.1f"|format(s.avg_rating) }}</span>
       <span class="fh-review-count">({{ s.review_count }})</span>
+      {% else %}
+      <span class="fh-review-count">New service</span>
+      {% endif %}
     </div>
-    {% endif %}
     <div class="fh-service-footer">
       <div class="fh-service-price">
         <small>Starting at</small>
