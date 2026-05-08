@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>{% block title %}FreelanceHub — India's Premium Freelance Marketplace{% endblock %}</title>
   <meta name="description" content="Hire top freelancers for design, development, writing, marketing, video and more. FreelanceHub — India's most trusted freelance marketplace." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,20 +13,15 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════════ NAVBAR ══════════════════════════════════ -->
 <nav class="fh-navbar">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;width:100%;display:flex;align-items:center;gap:1rem;">
+  <div class="fh-navbar-inner">
 
-    <!-- LOGO -->
     <a href="{{ url_for('index') }}" class="fh-logo">
       <div class="fh-logo-icon">
         <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect width="38" height="38" rx="10" fill="#0a0a0f"/>
-          <!-- Hexagonal grid mark -->
           <path d="M19 8 L26.5 12.5 V21.5 L19 26 L11.5 21.5 V12.5 Z" fill="none" stroke="#6c63ff" stroke-width="1.8"/>
-          <!-- Inner accent F -->
           <path d="M16 14h7M16 19h5M16 14v10" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <!-- Top dot -->
           <circle cx="27.5" cy="11" r="3" fill="#43d9ad"/>
         </svg>
       </div>
@@ -36,8 +31,7 @@
       </div>
     </a>
 
-    <!-- SEARCH -->
-    <div class="fh-search-wrap d-none d-lg-block">
+    <div class="fh-search-wrap fh-desktop-only">
       <i class="bi bi-search fh-search-icon"></i>
       <input id="nav-search-input" type="text" class="fh-search-input"
              placeholder="Search services, skills, categories..."
@@ -50,40 +44,33 @@
       <div id="nav-autocomplete-results" class="autocomplete-dropdown" style="display:none;"></div>
     </div>
 
-    <!-- NAV LINKS -->
-    <ul class="fh-nav-links d-none d-lg-flex" id="fhNavLinks">
-      <li><a href="{{ url_for('browse') }}"><i class="bi bi-grid-3x3-gap me-1"></i>Browse</a></li>
-      <li><a href="{{ url_for('trending') }}"><i class="bi bi-graph-up-arrow me-1"></i>Trending</a></li>
-      <li><a href="{{ url_for('recommendations') }}"><i class="bi bi-stars me-1"></i>For You</a></li>
+    <ul class="fh-nav-links fh-desktop-only" id="fhNavLinks">
+      <li><a href="{{ url_for('browse') }}"><i class="bi bi-grid-3x3-gap"></i> Browse</a></li>
+      <li><a href="{{ url_for('trending') }}"><i class="bi bi-graph-up-arrow"></i> Trending</a></li>
+      <li><a href="{{ url_for('recommendations') }}"><i class="bi bi-stars"></i> For You</a></li>
       {% if current_user and current_user.role == 'seller' %}
-      <li><a href="{{ url_for('post_service') }}"><i class="bi bi-plus-circle me-1"></i>Post Service</a></li>
+      <li><a href="{{ url_for('post_service') }}"><i class="bi bi-plus-circle"></i> Post</a></li>
       {% endif %}
-      <li><a href="{{ url_for('help_center') }}"><i class="bi bi-life-preserver me-1"></i>Help</a></li>
+      <li><a href="{{ url_for('help_center') }}"><i class="bi bi-life-preserver"></i> Help</a></li>
     </ul>
 
-    <!-- ACTIONS -->
     <div class="fh-nav-actions">
       {% if current_user %}
-        <!-- Notifications -->
         <a href="{{ url_for('notifications') }}" class="fh-notif-btn" title="Notifications">
           <i class="bi bi-bell"></i>
           {% if unread_notifications > 0 %}
           <span class="fh-badge">{{ unread_notifications }}</span>
           {% endif %}
         </a>
-
-        <!-- Orders -->
-        <a href="{{ url_for('my_orders') }}" class="fh-notif-btn" title="Orders">
+        <a href="{{ url_for('my_orders') }}" class="fh-notif-btn fh-desktop-only" title="Orders">
           <i class="bi bi-bag-check"></i>
         </a>
-
         {% if current_user.role == 'buyer' %}
-        <a href="{{ url_for('saved_services') }}" class="fh-notif-btn" title="Saved">
+        <a href="{{ url_for('saved_services') }}" class="fh-notif-btn fh-desktop-only" title="Saved">
           <i class="bi bi-heart"></i>
         </a>
         {% endif %}
 
-        <!-- User Dropdown -->
         <div class="fh-dropdown">
           <div class="fh-avatar" title="{{ current_user.name }}">{{ current_user.name[0]|upper }}</div>
           <div class="fh-dropdown-menu">
@@ -92,35 +79,22 @@
               <div class="email">{{ current_user.email }}</div>
               <span class="role-tag">{{ current_user.role }}</span>
             </div>
-            <a href="{{ url_for('profile', user_id=current_user.id) }}" class="fh-dropdown-item">
-              <i class="bi bi-person"></i> View Profile
-            </a>
-            <a href="{{ url_for('account') }}" class="fh-dropdown-item">
-              <i class="bi bi-gear"></i> Account Settings
-            </a>
+            <a href="{{ url_for('profile', user_id=current_user.id) }}" class="fh-dropdown-item"><i class="bi bi-person"></i> View Profile</a>
+            <a href="{{ url_for('account') }}" class="fh-dropdown-item"><i class="bi bi-gear"></i> Account Settings</a>
+            <a href="{{ url_for('my_orders') }}" class="fh-dropdown-item"><i class="bi bi-bag-check"></i> My Orders</a>
             {% if current_user.role == 'seller' %}
-            <a href="{{ url_for('my_services') }}" class="fh-dropdown-item">
-              <i class="bi bi-collection"></i> My Services
-            </a>
-            <a href="{{ url_for('post_service') }}" class="fh-dropdown-item">
-              <i class="bi bi-plus-circle"></i> Post a Service
-            </a>
+            <a href="{{ url_for('my_services') }}" class="fh-dropdown-item"><i class="bi bi-collection"></i> My Services</a>
+            <a href="{{ url_for('post_service') }}" class="fh-dropdown-item"><i class="bi bi-plus-circle"></i> Post a Service</a>
             {% endif %}
             {% if current_user.role == 'buyer' %}
-            <a href="{{ url_for('saved_services') }}" class="fh-dropdown-item">
-              <i class="bi bi-heart"></i> Saved Services
-            </a>
+            <a href="{{ url_for('saved_services') }}" class="fh-dropdown-item"><i class="bi bi-heart"></i> Saved Services</a>
             {% endif %}
             {% if current_user.is_admin %}
             <div class="fh-dropdown-divider"></div>
-            <a href="{{ url_for('admin_dashboard') }}" class="fh-dropdown-item" style="color:#e04060;">
-              <i class="bi bi-shield-lock"></i> Admin Panel
-            </a>
+            <a href="{{ url_for('admin_dashboard') }}" class="fh-dropdown-item" style="color:#e04060;"><i class="bi bi-shield-lock"></i> Admin Panel</a>
             {% endif %}
             <div class="fh-dropdown-divider"></div>
-            <a href="{{ url_for('logout') }}" class="fh-dropdown-item danger">
-              <i class="bi bi-box-arrow-right"></i> Log Out
-            </a>
+            <a href="{{ url_for('logout') }}" class="fh-dropdown-item danger"><i class="bi bi-box-arrow-right"></i> Log Out</a>
           </div>
         </div>
 
@@ -129,7 +103,6 @@
         <a href="{{ url_for('signup') }}" class="btn-nav-primary">Sign Up Free</a>
       {% endif %}
 
-      <!-- Hamburger -->
       <button class="fh-hamburger" onclick="toggleMobileNav()">
         <i class="bi bi-list"></i>
       </button>
@@ -138,32 +111,53 @@
   </div>
 </nav>
 
-<!-- FLASH MESSAGES -->
+<!-- Mobile Nav Drawer -->
+<div id="fhMobileNav" class="fh-mobile-nav">
+  <a href="{{ url_for('browse') }}" class="fh-mobile-nav-item"><i class="bi bi-grid-3x3-gap"></i> Browse Services</a>
+  <a href="{{ url_for('trending') }}" class="fh-mobile-nav-item"><i class="bi bi-graph-up-arrow"></i> Trending</a>
+  <a href="{{ url_for('recommendations') }}" class="fh-mobile-nav-item"><i class="bi bi-stars"></i> For You</a>
+  <a href="{{ url_for('help_center') }}" class="fh-mobile-nav-item"><i class="bi bi-life-preserver"></i> Help</a>
+  {% if current_user %}
+  <a href="{{ url_for('my_orders') }}" class="fh-mobile-nav-item"><i class="bi bi-bag-check"></i> My Orders</a>
+  {% if current_user.role == 'seller' %}
+  <a href="{{ url_for('my_services') }}" class="fh-mobile-nav-item"><i class="bi bi-collection"></i> My Services</a>
+  <a href="{{ url_for('post_service') }}" class="fh-mobile-nav-item"><i class="bi bi-plus-circle"></i> Post a Service</a>
+  {% endif %}
+  {% else %}
+  <a href="{{ url_for('login') }}" class="fh-mobile-nav-item"><i class="bi bi-box-arrow-right"></i> Log In</a>
+  <a href="{{ url_for('signup') }}" class="fh-mobile-nav-item"><i class="bi bi-person-plus"></i> Sign Up Free</a>
+  {% endif %}
+  <!-- Mobile search -->
+  <div style="padding:12px 16px;">
+    <div style="position:relative;">
+      <i class="bi bi-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-soft);"></i>
+      <input type="text" placeholder="Search services..."
+             style="width:100%;height:42px;border:1.5px solid var(--border);border-radius:99px;padding:0 14px 0 38px;font-size:14px;outline:none;"
+             onkeydown="if(event.key==='Enter'){window.location='/browse?search='+encodeURIComponent(this.value);}" />
+    </div>
+  </div>
+</div>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
-<div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;" >
-  <div style="padding-top:14px;">
-    {% for cat, msg in messages %}
-    {% set alert_class = 'fh-alert-' + ('success' if cat == 'success' else 'danger' if cat == 'danger' else 'warning' if cat == 'warning' else 'info') %}
-    <div class="fh-alert {{ alert_class }}">
-      <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'exclamation-circle' if cat == 'danger' else 'exclamation-triangle' if cat == 'warning' else 'info-circle' }}"></i>
-      <span>{{ msg }}</span>
-      <button class="fh-alert-close" onclick="this.parentElement.remove()">&times;</button>
-    </div>
-    {% endfor %}
+<div class="fh-flash-container">
+  {% for cat, msg in messages %}
+  {% set alert_class = 'fh-alert-' + ('success' if cat == 'success' else 'danger' if cat == 'danger' else 'warning' if cat == 'warning' else 'info') %}
+  <div class="fh-alert {{ alert_class }}">
+    <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'exclamation-circle' if cat == 'danger' else 'exclamation-triangle' if cat == 'warning' else 'info-circle' }}"></i>
+    <span>{{ msg }}</span>
+    <button class="fh-alert-close" onclick="this.parentElement.remove()">&times;</button>
   </div>
+  {% endfor %}
 </div>
 {% endif %}
 {% endwith %}
 
 {% block content %}{% endblock %}
 
-<!-- ══════════════════════════════════ FOOTER ══════════════════════════════════ -->
 <footer class="fh-footer">
-  <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px;" class="fh-footer-grid">
-
-      <!-- Brand -->
+  <div class="container">
+    <div class="fh-footer-grid">
       <div class="fh-footer-brand">
         <a href="{{ url_for('index') }}" class="fh-logo" style="margin-bottom:14px;display:inline-flex;">
           <div class="fh-logo-icon">
@@ -183,14 +177,11 @@
         <div class="fh-footer-social" style="margin-top:20px;">
           <a href="#" class="fh-social-btn" title="Facebook"><i class="bi bi-facebook"></i></a>
           <a href="#" class="fh-social-btn" title="Instagram"><i class="bi bi-instagram"></i></a>
-          <!-- X (formerly Twitter) logo -->
-          <a href="#" class="fh-social-btn" title="X (Twitter)" style="font-weight:900;font-size:13px;font-family:'Syne',sans-serif;letter-spacing:-.02em;">𝕏</a>
+          <a href="#" class="fh-social-btn" title="X" style="font-weight:900;font-size:13px;">𝕏</a>
           <a href="#" class="fh-social-btn" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
           <a href="#" class="fh-social-btn" title="YouTube"><i class="bi bi-youtube"></i></a>
         </div>
       </div>
-
-      <!-- Marketplace -->
       <div>
         <p class="fh-footer-heading">Marketplace</p>
         <ul class="fh-footer-links">
@@ -202,8 +193,6 @@
           <li><a href="{{ url_for('browse', category='marketing') }}">Marketing</a></li>
         </ul>
       </div>
-
-      <!-- Sellers -->
       <div>
         <p class="fh-footer-heading">Sellers</p>
         <ul class="fh-footer-links">
@@ -215,8 +204,6 @@
           <li><a href="{{ url_for('help_center') }}">Seller Guide</a></li>
         </ul>
       </div>
-
-      <!-- Support -->
       <div>
         <p class="fh-footer-heading">Support</p>
         <ul class="fh-footer-links">
@@ -224,7 +211,6 @@
           <li><a href="{{ url_for('support') }}">Contact Support</a></li>
           <li><a href="#">Privacy Policy</a></li>
           <li><a href="#">Terms of Service</a></li>
-          <li><a href="#">Trust &amp; Safety</a></li>
         </ul>
         <p class="fh-footer-heading" style="margin-top:20px;">Payment</p>
         <div class="fh-footer-pay-tags">
@@ -236,9 +222,7 @@
         </div>
       </div>
     </div>
-
     <div class="fh-footer-divider"></div>
-
     <div class="fh-footer-bottom">
       <p class="fh-footer-copy">&copy; 2025 FreelanceHub Technologies Pvt. Ltd. — Built with Flask &middot; SQLite &middot; Love in India 🇮🇳</p>
       <div style="display:flex;gap:16px;flex-wrap:wrap;">
@@ -250,10 +234,8 @@
   </div>
 </footer>
 
-<!-- ══════════════════════════════════ AI CHATBOT ══════════════════════════════════ -->
 <button class="fh-chat-toggle" onclick="toggleChat()" id="chatToggle" title="Chat with AI Assistant">
   <i class="bi bi-robot" id="chatToggleIcon"></i>
-  <span class="fh-chat-badge" id="chatBadge" style="display:none;">1</span>
 </button>
 
 <div class="fh-chatbox" id="chatbox">
@@ -261,9 +243,7 @@
     <div class="fh-chatbox-avatar">🤖</div>
     <div class="fh-chatbox-info">
       <div class="fh-chatbox-name">FreelanceHub AI</div>
-      <div class="fh-chatbox-status">
-        <span class="fh-chatbox-online"></span> Online · Instant replies
-      </div>
+      <div class="fh-chatbox-status"><span class="fh-chatbox-online"></span> Online · Instant replies</div>
     </div>
     <button class="fh-chatbox-close" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
   </div>
@@ -278,14 +258,16 @@
 {% block scripts %}{% endblock %}
 
 <script>
-// Mobile nav toggle
 function toggleMobileNav() {
-  const links = document.getElementById('fhNavLinks');
-  links.classList.toggle('mobile-open');
-  links.style.display = links.classList.contains('mobile-open') ? 'flex' : '';
+  const nav = document.getElementById('fhMobileNav');
+  nav.classList.toggle('open');
 }
+document.addEventListener('click', e => {
+  if (!e.target.closest('.fh-navbar') && !e.target.closest('.fh-mobile-nav')) {
+    document.getElementById('fhMobileNav').classList.remove('open');
+  }
+});
 
-// Navbar autocomplete
 let navTimer;
 function navAutocomplete(q) {
   clearTimeout(navTimer);
@@ -313,151 +295,62 @@ document.addEventListener('click', e => {
   }
 });
 
-// Chatbot
-let chatOpen = false;
-let chatHistory = [];
-let chatGreeted = false;
-
+let chatOpen = false, chatHistory = [], chatGreeted = false;
 function toggleChat() {
   chatOpen = !chatOpen;
-  const box = document.getElementById('chatbox');
-  const icon = document.getElementById('chatToggleIcon');
-  const badge = document.getElementById('chatBadge');
-  box.classList.toggle('open', chatOpen);
-  icon.className = chatOpen ? 'bi bi-x-lg' : 'bi bi-robot';
-  badge.style.display = 'none';
+  document.getElementById('chatbox').classList.toggle('open', chatOpen);
+  document.getElementById('chatToggleIcon').className = chatOpen ? 'bi bi-x-lg' : 'bi bi-robot';
   if (chatOpen && !chatGreeted) {
     chatGreeted = true;
-    setTimeout(() => addBotMessage("Hey there! 👋 I'm your FreelanceHub AI assistant. I can help you find services, answer questions about the platform, or guide you through any process. What are you looking for today?",
+    setTimeout(() => addBotMessage("Hey there! 👋 I'm your FreelanceHub AI assistant. What are you looking for today?",
       ["Find a designer","I need web development","How does payment work?","Tell me about FreelanceHub"]), 400);
   }
 }
-
 function addBotMessage(text, suggestions=[]) {
   const msgs = document.getElementById('chatMessages');
-  const wrapper = document.createElement('div');
-  wrapper.className = 'fh-chat-msg bot';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'fh-chat-bubble bot';
-  bubble.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-  wrapper.appendChild(bubble);
-
+  const w = document.createElement('div'); w.className = 'fh-chat-msg bot';
+  const b = document.createElement('div'); b.className = 'fh-chat-bubble bot';
+  b.innerHTML = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  w.appendChild(b);
   if (suggestions.length) {
-    const sugs = document.createElement('div');
-    sugs.className = 'fh-chat-suggestions';
-    suggestions.forEach(s => {
-      const btn = document.createElement('button');
-      btn.className = 'fh-chat-suggestion';
-      btn.textContent = s;
-      btn.onclick = () => { document.getElementById('chatInput').value = s; sendChat(); };
-      sugs.appendChild(btn);
-    });
-    wrapper.appendChild(sugs);
+    const s = document.createElement('div'); s.className = 'fh-chat-suggestions';
+    suggestions.forEach(sg => { const btn=document.createElement('button');btn.className='fh-chat-suggestion';btn.textContent=sg;btn.onclick=()=>{document.getElementById('chatInput').value=sg;sendChat();};s.appendChild(btn); });
+    w.appendChild(s);
   }
-
-  const time = document.createElement('div');
-  time.className = 'fh-chat-time';
-  time.textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-  wrapper.appendChild(time);
-
-  msgs.appendChild(wrapper);
-  msgs.scrollTop = msgs.scrollHeight;
+  const t = document.createElement('div'); t.className='fh-chat-time'; t.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); w.appendChild(t);
+  msgs.appendChild(w); msgs.scrollTop=msgs.scrollHeight;
 }
-
 function addUserMessage(text) {
-  const msgs = document.getElementById('chatMessages');
-  const wrapper = document.createElement('div');
-  wrapper.className = 'fh-chat-msg user';
-  const bubble = document.createElement('div');
-  bubble.className = 'fh-chat-bubble user';
-  bubble.textContent = text;
-  wrapper.appendChild(bubble);
-  msgs.appendChild(wrapper);
-  msgs.scrollTop = msgs.scrollHeight;
+  const msgs=document.getElementById('chatMessages');
+  const w=document.createElement('div');w.className='fh-chat-msg user';
+  const b=document.createElement('div');b.className='fh-chat-bubble user';b.textContent=text;
+  w.appendChild(b);msgs.appendChild(w);msgs.scrollTop=msgs.scrollHeight;
 }
-
 function showTyping() {
-  const msgs = document.getElementById('chatMessages');
-  const el = document.createElement('div');
-  el.className = 'fh-chat-msg bot'; el.id = 'chatTyping';
-  el.innerHTML = `<div class="fh-chat-typing"><div class="fh-chat-dot"></div><div class="fh-chat-dot"></div><div class="fh-chat-dot"></div></div>`;
-  msgs.appendChild(el);
-  msgs.scrollTop = msgs.scrollHeight;
+  const msgs=document.getElementById('chatMessages');
+  const el=document.createElement('div');el.className='fh-chat-msg bot';el.id='chatTyping';
+  el.innerHTML='<div class="fh-chat-typing"><div class="fh-chat-dot"></div><div class="fh-chat-dot"></div><div class="fh-chat-dot"></div></div>';
+  msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;
 }
-
-function hideTyping() {
-  const el = document.getElementById('chatTyping');
-  if (el) el.remove();
-}
-
+function hideTyping(){const el=document.getElementById('chatTyping');if(el)el.remove();}
 async function sendChat() {
-  const input = document.getElementById('chatInput');
-  const msg = input.value.trim();
-  if (!msg) return;
-  input.value = '';
-  addUserMessage(msg);
-  chatHistory.push({role:'user',content:msg});
-  showTyping();
+  const input=document.getElementById('chatInput');const msg=input.value.trim();if(!msg)return;
+  input.value='';addUserMessage(msg);chatHistory.push({role:'user',content:msg});showTyping();
   try {
-    const res = await fetch('/api/chat', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({message:msg, history:chatHistory})
-    });
-    const data = await res.json();
-    hideTyping();
-    addBotMessage(data.reply, data.suggestions || []);
-    if (data.services && data.services.length) {
-      const msgs = document.getElementById('chatMessages');
-      const svcWrap = document.createElement('div');
-      svcWrap.className = 'fh-chat-msg bot';
-      data.services.forEach(s => {
-        const card = document.createElement('a');
-        card.href = `/services/${s.id}`;
-        card.className = 'fh-chat-service-card';
-        card.innerHTML = `
-          <img src="${s.image}" alt="" class="fh-chat-service-img" onerror="this.style.display='none'"/>
-          <div style="flex:1;min-width:0;">
-            <div class="fh-chat-service-title line-clamp-2">${s.title}</div>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:3px;">
-              <span class="fh-chat-service-price">Rs.${s.price.toLocaleString('en-IN')}</span>
-              ${s.rating > 0 ? `<span style="font-size:11px;color:#8888aa;">⭐ ${s.rating}</span>` : ''}
-            </div>
-          </div>
-          <i class="bi bi-arrow-right" style="color:var(--accent);font-size:14px;flex-shrink:0;"></i>
-        `;
-        svcWrap.appendChild(card);
-      });
-      msgs.appendChild(svcWrap);
-      msgs.scrollTop = msgs.scrollHeight;
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:chatHistory})});
+    const data=await res.json();hideTyping();addBotMessage(data.reply,data.suggestions||[]);
+    if(data.services&&data.services.length){
+      const msgs=document.getElementById('chatMessages');const sw=document.createElement('div');sw.className='fh-chat-msg bot';
+      data.services.forEach(s=>{const card=document.createElement('a');card.href=`/services/${s.id}`;card.className='fh-chat-service-card';
+      card.innerHTML=`<img src="${s.image}" alt="" class="fh-chat-service-img" onerror="this.style.display='none'"/><div style="flex:1;min-width:0;"><div class="fh-chat-service-title">${s.title}</div><div style="margin-top:3px;"><span class="fh-chat-service-price">Rs.${s.price.toLocaleString('en-IN')}</span>${s.rating>0?`<span style="font-size:11px;color:#8888aa;margin-left:6px;">⭐${s.rating}</span>`:''}</div></div><i class="bi bi-arrow-right" style="color:var(--accent);flex-shrink:0;"></i>`;
+      sw.appendChild(card);});msgs.appendChild(sw);msgs.scrollTop=msgs.scrollHeight;
     }
     chatHistory.push({role:'assistant',content:data.reply});
-  } catch(e) {
-    hideTyping();
-    addBotMessage("Sorry, I couldn't connect. Please try again!");
-  }
+  } catch(e){hideTyping();addBotMessage("Sorry, I couldn't connect. Please try again!");}
 }
-
-// FAQ accordion
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.fh-faq-q').forEach(q => {
-    q.addEventListener('click', () => {
-      const item = q.parentElement;
-      const isOpen = item.classList.contains('open');
-      document.querySelectorAll('.fh-faq-item').forEach(i => i.classList.remove('open'));
-      if (!isOpen) item.classList.add('open');
-    });
-  });
-});
-
-// Payment method selection on checkout
-document.querySelectorAll('.fh-checkout-step').forEach(step => {
-  step.addEventListener('click', () => {
-    document.querySelectorAll('.fh-checkout-step').forEach(s => s.classList.remove('selected'));
-    step.classList.add('selected');
-    const radio = step.querySelector('input[type=radio]');
-    if (radio) radio.checked = true;
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.fh-faq-q').forEach(q=>{
+    q.addEventListener('click',()=>{const item=q.parentElement;const isOpen=item.classList.contains('open');document.querySelectorAll('.fh-faq-item').forEach(i=>i.classList.remove('open'));if(!isOpen)item.classList.add('open');});
   });
 });
 </script>
