@@ -95,6 +95,7 @@ a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
   display:flex;
   align-items:center;
   gap:12px;
+  overflow:visible;
 }
 
 .fh-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
@@ -638,9 +639,15 @@ html, body {
 }
 
 section, .fh-hero, .fh-trust-section,
-.fh-stats-bar, .fh-footer, .fh-navbar {
+.fh-stats-bar, .fh-footer {
   max-width: 100%;
   overflow: hidden;
+}
+
+/* Navbar must allow dropdown menus to extend below the bar (avoid clipping / “thin line” glitch). */
+.fh-navbar {
+  max-width: 100%;
+  overflow: visible;
 }
 
 /* SERVICE GRID — fixed columns, no auto-fill overflow */
