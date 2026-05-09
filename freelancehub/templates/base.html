@@ -71,11 +71,9 @@
         </a>
         {% endif %}
 
-        <div class="fh-dropdown">
-          <button class="fh-avatar fh-avatar-trigger" id="profileMenuTrigger" title="{{ current_user.name }}" type="button" aria-label="Open profile menu" aria-expanded="false" aria-controls="profileMenu">
-            {{ current_user.name[0]|upper }}
-          </button>
-          <div class="fh-dropdown-menu" id="profileMenu">
+        <details class="fh-dropdown fh-profile-dropdown">
+          <summary class="fh-avatar fh-avatar-summary" title="{{ current_user.name }}">{{ current_user.name[0]|upper }}</summary>
+          <div class="fh-dropdown-menu fh-profile-dropdown-menu">
             <div class="fh-dropdown-header">
               <div class="name">{{ current_user.name }}</div>
               <div class="email">{{ current_user.email }}</div>
@@ -98,7 +96,7 @@
             <div class="fh-dropdown-divider"></div>
             <a href="{{ url_for('logout') }}" class="fh-dropdown-item danger"><i class="bi bi-box-arrow-right"></i> Log Out</a>
           </div>
-        </div>
+        </details>
 
       {% else %}
         <a href="{{ url_for('login') }}" class="btn-nav-outline">Log In</a>
@@ -125,6 +123,7 @@
   <a href="{{ url_for('my_services') }}" class="fh-mobile-nav-item"><i class="bi bi-collection"></i> My Services</a>
   <a href="{{ url_for('post_service') }}" class="fh-mobile-nav-item"><i class="bi bi-plus-circle"></i> Post a Service</a>
   {% endif %}
+  <a href="{{ url_for('logout') }}" class="fh-mobile-nav-item"><i class="bi bi-box-arrow-right"></i> Log Out</a>
   {% else %}
   <a href="{{ url_for('login') }}" class="fh-mobile-nav-item"><i class="bi bi-box-arrow-right"></i> Log In</a>
   <a href="{{ url_for('signup') }}" class="fh-mobile-nav-item"><i class="bi bi-person-plus"></i> Sign Up Free</a>
@@ -270,30 +269,16 @@ document.addEventListener('click', e => {
   }
 });
 
-const profileMenuTrigger = document.getElementById('profileMenuTrigger');
-const profileMenu = document.getElementById('profileMenu');
-
-if (profileMenuTrigger && profileMenu) {
-  profileMenuTrigger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = profileMenu.classList.toggle('open');
-    profileMenuTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+document.querySelectorAll('.fh-profile-dropdown').forEach(drop => {
+  drop.addEventListener('keydown', e => {
+    if (e.key === 'Escape') drop.open = false;
   });
-
-  profileMenu.addEventListener('click', (e) => e.stopPropagation());
-
-  document.addEventListener('click', () => {
-    profileMenu.classList.remove('open');
-    profileMenuTrigger.setAttribute('aria-expanded', 'false');
+});
+document.addEventListener('click', e => {
+  document.querySelectorAll('.fh-profile-dropdown[open]').forEach(drop => {
+    if (!drop.contains(e.target)) drop.open = false;
   });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      profileMenu.classList.remove('open');
-      profileMenuTrigger.setAttribute('aria-expanded', 'false');
-    }
-  });
-}
+});
 
 let navTimer;
 function navAutocomplete(q) {
