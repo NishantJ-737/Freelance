@@ -117,6 +117,7 @@ a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
 .fh-nav-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0;}
 
 .fh-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:white;font-family:var(--font-display);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
+.fh-avatar-trigger{border:none;padding:0;line-height:1;}
 
 .fh-notif-btn{position:relative;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--text-mid);font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all var(--transition);}
 .fh-notif-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.06);}
@@ -137,6 +138,7 @@ a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
 .fh-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:220px;padding:8px;display:none;z-index:2000;animation:dropIn .15s ease;}
 @keyframes dropIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 .fh-dropdown:hover .fh-dropdown-menu{display:block;}
+.fh-dropdown-menu.open{display:block;}
 .fh-dropdown-header{padding:10px 12px 12px;border-bottom:1px solid var(--border);margin-bottom:6px;}
 .fh-dropdown-header .name{font-weight:700;font-size:14px;color:var(--ink);}
 .fh-dropdown-header .email{font-size:12px;color:var(--text-soft);}

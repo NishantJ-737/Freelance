@@ -72,8 +72,10 @@
         {% endif %}
 
         <div class="fh-dropdown">
-          <div class="fh-avatar" title="{{ current_user.name }}">{{ current_user.name[0]|upper }}</div>
-          <div class="fh-dropdown-menu">
+          <button class="fh-avatar fh-avatar-trigger" id="profileMenuTrigger" title="{{ current_user.name }}" type="button" aria-label="Open profile menu" aria-expanded="false" aria-controls="profileMenu">
+            {{ current_user.name[0]|upper }}
+          </button>
+          <div class="fh-dropdown-menu" id="profileMenu">
             <div class="fh-dropdown-header">
               <div class="name">{{ current_user.name }}</div>
               <div class="email">{{ current_user.email }}</div>
@@ -267,6 +269,31 @@ document.addEventListener('click', e => {
     document.getElementById('fhMobileNav').classList.remove('open');
   }
 });
+
+const profileMenuTrigger = document.getElementById('profileMenuTrigger');
+const profileMenu = document.getElementById('profileMenu');
+
+if (profileMenuTrigger && profileMenu) {
+  profileMenuTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = profileMenu.classList.toggle('open');
+    profileMenuTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  profileMenu.addEventListener('click', (e) => e.stopPropagation());
+
+  document.addEventListener('click', () => {
+    profileMenu.classList.remove('open');
+    profileMenuTrigger.setAttribute('aria-expanded', 'false');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      profileMenu.classList.remove('open');
+      profileMenuTrigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
 
 let navTimer;
 function navAutocomplete(q) {
