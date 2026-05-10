@@ -1,0 +1,515 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>FreelanceHub – Report Code Snippets</title>
+  <style>
+    body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.35; }
+    h1 { font-size: 20pt; margin: 0 0 8pt 0; }
+    h2 { font-size: 14pt; margin: 16pt 0 6pt 0; }
+    p  { margin: 0 0 8pt 0; }
+    .meta { color: #444; font-size: 10.5pt; }
+    .blocklabel { font-weight: 700; margin: 10pt 0 4pt 0; }
+    pre {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9.5pt;
+      background: #f6f7f9;
+      border: 1px solid #d9dde3;
+      padding: 10pt;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 0 0 10pt 0;
+    }
+    .path { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; color:#333; }
+  </style>
+</head>
+<body>
+  <h1>FreelanceHub – Report Code Snippets</h1>
+  <p class="meta">
+    Project: FreelanceHub (Flask + SQLite + Vanilla JS)<br/>
+    Workspace: <span class="path">C:\Freelance-fixed</span>
+  </p>
+
+  <h2>Authentication Logic (1–2 pages)</h2>
+  <p><b>What it covers:</b> Session-based authentication, role-based access control (buyer/seller/admin), password hashing, login/signup/logout.</p>
+
+  <p class="blocklabel">Snippet A — Auth guards (decorators) + session user object</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 248–285)</p>
+  <pre>def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to continue.", "warning")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+def seller_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to continue.", "warning")
+            return redirect(url_for("login"))
+        if session.get("role") != "seller":
+            flash("Only sellers can access this page.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to continue.", "warning")
+            return redirect(url_for("login"))
+        if not session.get("is_admin"):
+            flash("Admin access required.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated
+
+def current_user():
+    if "user_id" in session:
+        return {"id": session["user_id"], "name": session["name"], "role": session["role"], "email": session["email"], "is_admin": session.get("is_admin", False)}
+    return None</pre>
+
+  <p class="blocklabel">Snippet B — Signup/Login/Logout (password hashing + sessions)</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 299–360)</p>
+  <pre>@app.route("/login", methods=["GET", "POST"])
+def login():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        with get_db() as db:
+            user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    if user and check_password_hash(user["password_hash"], password):
+        if user["is_banned"]:
+            flash("Your account has been suspended.", "danger")
+            return render_template("login.html")
+        session["user_id"] = user["id"]
+        session["name"] = user["name"]
+        session["role"] = user["role"]
+        session["email"] = user["email"]
+        session["is_admin"] = bool(user["is_admin"])
+        flash(f"Welcome back, {user['name']}!", "success")
+        return redirect(url_for("index"))
+    flash("Invalid email or password.", "danger")
+    return render_template("login.html")
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        role = request.form.get("role", "buyer")
+        if not name or not email or not password:
+            flash("All fields are required.", "danger")
+            return render_template("signup.html")
+        if len(password) &lt; 6:
+            flash("Password must be at least 6 characters.", "danger")
+            return render_template("signup.html")
+        if role not in ("buyer", "seller"):
+            role = "buyer"
+        with get_db() as db:
+            existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            if existing:
+                flash("An account with this email already exists.", "danger")
+                return render_template("signup.html")
+            db.execute("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)", (name, email, generate_password_hash(password), role))
+            user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            notify(db, user["id"], "Welcome to FreelanceHub!", f"Hi {name}, your account is ready!", url_for("index"))
+        session["user_id"] = user["id"]
+        session["name"] = user["name"]
+        session["role"] = user["role"]
+        session["email"] = user["email"]
+        session["is_admin"] = False
+        flash(f"Welcome to FreelanceHub, {name}!", "success")
+        return redirect(url_for("index"))
+    return render_template("signup.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.", "info")
+    return redirect(url_for("index"))</pre>
+
+
+  <h2>AI Price Suggestion (1–2 pages)</h2>
+  <p><b>What it covers:</b> A backend API computes suggested pricing using real service data (AVG/MIN/MAX) per category when available, otherwise falls back to market ranges. The frontend fetches and displays the suggestion.</p>
+
+  <p class="blocklabel">Snippet A — Backend price suggestion API</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 962–975)</p>
+  <pre>@app.route("/api/suggest-price")
+def api_suggest_price():
+    category = request.args.get("category", "")
+    with get_db() as db:
+        cat_row = db.execute("SELECT slug FROM categories WHERE id=?", (category,)).fetchone()
+        slug = cat_row["slug"] if cat_row else ""
+        sample = db.execute("SELECT AVG(price) as avg, MIN(price) as mn, MAX(price) as mx, COUNT(*) as cnt FROM services WHERE category_id=?", (category,)).fetchone()
+    PRICE_RANGES = {"design":{"min":2000,"max":50000,"avg":12000},"development":{"min":8000,"max":150000,"avg":35000},"writing":{"min":500,"max":15000,"avg":4000},"marketing":{"min":3000,"max":80000,"avg":18000},"video":{"min":2000,"max":60000,"avg":12000},"music":{"min":1000,"max":20000,"avg":6000},"data":{"min":3000,"max":40000,"avg":10000},"business":{"min":5000,"max":100000,"avg":20000}}
+    ranges = PRICE_RANGES.get(slug, {"min":1000,"max":50000,"avg":10000})
+    if sample["cnt"] and sample["cnt"] &gt; 0:
+        suggested = int(sample["avg"]); mn = int(sample["mn"]); mx = int(sample["mx"]); msg = f"Based on {sample['cnt']} similar services"
+    else:
+        suggested = ranges["avg"]; mn = ranges["min"]; mx = ranges["max"]; msg = "Based on market norms"
+    return jsonify({"suggested": max(1, suggested + random.randint(-500,500)), "min": mn, "max": mx, "message": msg})</pre>
+
+  <p class="blocklabel">Snippet B — Frontend fetch + suggestion UI</p>
+  <p class="meta">Source: <span class="path">freelancehub\static\js\main.js</span> (lines 4–20)</p>
+  <pre>async function suggestPrice() {
+  const categoryId = document.getElementById('category_id')?.value;
+  const title = document.getElementById('title')?.value || '';
+  const desc = document.getElementById('description')?.value || '';
+  if (!categoryId) return;
+  try {
+    const res = await fetch(`/api/suggest-price?category=${categoryId}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(desc)}`);
+    const data = await res.json();
+    const box = document.getElementById('price-suggestion');
+    const inp = document.getElementById('price');
+    if (box) {
+      box.innerHTML = `<i class="bi bi-lightbulb-fill" style="color:var(--gold);"></i> <strong>Suggested: Rs.${data.suggested.toLocaleString('en-IN')}</strong> &mdash; Range: Rs.${data.min.toLocaleString('en-IN')} – Rs.${data.max.toLocaleString('en-IN')} <span style="color:var(--text-soft);font-size:12px;">(${data.message})</span> <button type="button" onclick="document.getElementById('price').value=${data.suggested}" style="margin-left:8px;font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-weight:600;">Use this →</button>`;
+      box.style.display = 'flex';
+    }
+  } catch (e) {}
+}</pre>
+
+
+  <h2>Auto Categorisation (1 page)</h2>
+  <p><b>What it covers:</b> Keyword scoring to select the best category based on title + description. Returns category details and a confidence score; frontend auto-fills the category and triggers price suggestion.</p>
+
+  <p class="blocklabel">Snippet A — Keyword model + auto-categorize API</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 951–987)</p>
+  <pre>CATEGORY_KEYWORDS = {
+    "design": ["logo","design","brand","graphic","ui","ux","illustrat","banner","flyer","poster","icon","visual"],
+    "development": ["web","app","code","develop","program","software","website","react","python","flutter","mobile","api"],
+    "writing": ["write","blog","article","content","copy","essay","edit","proofread","translat","script"],
+    "marketing": ["seo","social media","market","ads","advertis","email","campaign","google","facebook","instagram"],
+    "video": ["video","edit","animat","youtube","film","motion","reel","vlog"],
+    "music": ["music","audio","voice","sound","record","mix","master","podcast","jingle"],
+    "data": ["data","excel","analytic","dashboard","chart","sql","tableau","power bi","python","scraping"],
+    "business": ["business","plan","consult","strateg","financ","account","pitch","startup","market research"],
+}
+
+@app.route("/api/auto-categorize")
+def api_auto_categorize():
+    text = (request.args.get("title","") + " " + request.args.get("description","")).lower()
+    best_slug, best_score = "design", 0
+    for slug, keywords in CATEGORY_KEYWORDS.items():
+        score = sum(1 for kw in keywords if kw in text)
+        if score &gt; best_score: best_score, best_slug = score, slug
+    with get_db() as db:
+        cat = db.execute("SELECT * FROM categories WHERE slug=?", (best_slug,)).fetchone()
+    return jsonify({"category_id": cat["id"], "category_name": cat["name"], "slug": best_slug, "confidence": min(0.95, 0.5+best_score*0.1)})</pre>
+
+  <p class="blocklabel">Snippet B — Frontend auto-fill + confidence label</p>
+  <p class="meta">Source: <span class="path">freelancehub\static\js\main.js</span> (lines 22–40)</p>
+  <pre>async function autoCategorize() {
+  const title = document.getElementById('title')?.value || '';
+  const desc = document.getElementById('description')?.value || '';
+  if (title.length &lt; 5 && desc.length &lt; 10) return;
+  try {
+    const res = await fetch(`/api/auto-categorize?title=${encodeURIComponent(title)}&description=${encodeURIComponent(desc)}`);
+    const data = await res.json();
+    const sel = document.getElementById('category_id');
+    if (sel && data.category_id) {
+      sel.value = data.category_id;
+      const label = document.getElementById('ai-category-label');
+      if (label) {
+        label.textContent = `AI suggests: ${data.category_name} (${Math.round(data.confidence * 100)}% confident)`;
+        label.style.display = 'inline';
+      }
+      await suggestPrice();
+    }
+  } catch (e) {}
+}</pre>
+
+
+  <h2>Order Management (1–2 pages)</h2>
+  <p><b>What it covers:</b> Checkout access control, order placement with payment method validation, order status transitions (pending → active → completed/cancelled), and notifications when order events happen.</p>
+
+  <p class="blocklabel">Snippet A — Checkout + place order</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 707–751)</p>
+  <pre>@app.route("/services/&lt;int:service_id&gt;/checkout")
+@login_required
+def checkout(service_id):
+    if session.get("role") == "seller":
+        with get_db() as db:
+            is_own = db.execute("SELECT id FROM services WHERE id=? AND seller_id=?", (service_id, session["user_id"])).fetchone()
+        if is_own:
+            flash("You cannot purchase your own service.", "warning")
+            return redirect(url_for("service_detail", service_id=service_id))
+    with get_db() as db:
+        service = db.execute("""
+            SELECT s.*, c.name as category_name, u.name as seller_name, u.id as seller_user_id
+            FROM services s JOIN categories c ON s.category_id=c.id JOIN users u ON s.seller_id=u.id
+            WHERE s.id=? AND s.is_approved=1
+        """, (service_id,)).fetchone()
+        if not service:
+            flash("Service not found.", "danger")
+            return redirect(url_for("browse"))
+        existing_inquiry = db.execute("SELECT * FROM inquiries WHERE service_id=? AND buyer_id=? AND status='open'", (service_id, session["user_id"])).fetchone()
+    return render_template("checkout.html", service=service, existing_inquiry=existing_inquiry)
+
+@app.route("/services/&lt;int:service_id&gt;/place-order", methods=["POST"])
+@login_required
+def place_order(service_id):
+    payment_method = request.form.get("payment_method", "")
+    notes = request.form.get("notes", "").strip()
+    valid_methods = ["upi", "netbanking", "card", "paypal", "bank_transfer", "wallet"]
+    if payment_method not in valid_methods:
+        flash("Please select a valid payment method.", "danger")
+        return redirect(url_for("checkout", service_id=service_id))
+    with get_db() as db:
+        service = db.execute("SELECT * FROM services WHERE id=? AND is_approved=1", (service_id,)).fetchone()
+        if not service:
+            flash("Service not found.", "danger")
+            return redirect(url_for("browse"))
+        payment_ref = f"PAY{random.randint(100000000, 999999999)}"
+        db.execute("""INSERT INTO orders (service_id, buyer_id, seller_id, status, payment_method, payment_ref, total_price, notes)
+            VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)""",
+            (service_id, session["user_id"], service["seller_id"], payment_method, payment_ref, service["price"], notes))
+        order_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        db.execute("UPDATE inquiries SET status='closed' WHERE service_id=? AND buyer_id=?", (service_id, session["user_id"]))
+        notify(db, service["seller_id"], "New Order Received!", f"{session['name']} ordered \"{service['title']}\".", url_for("order_detail", order_id=order_id))
+        notify(db, session["user_id"], "Order Placed!", f"Your order for \"{service['title']}\". Ref: {payment_ref}", url_for("order_detail", order_id=order_id))
+    flash(f"Order placed! Reference: {payment_ref}", "success")
+    return redirect(url_for("order_detail", order_id=order_id))</pre>
+
+  <p class="blocklabel">Snippet B — Order status transitions + permissions + notification</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 788–814)</p>
+  <pre>@app.route("/orders/&lt;int:order_id&gt;/update-status", methods=["POST"])
+@login_required
+def update_order_status(order_id):
+    new_status = request.form.get("status", "")
+    with get_db() as db:
+        order = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+        if not order:
+            flash("Order not found.", "danger")
+            return redirect(url_for("my_orders"))
+        uid = session["user_id"]; role = session.get("role"); allowed = False
+        if role == "seller" and uid == order["seller_id"]:
+            if new_status == "active" and order["status"] == "pending": allowed = True
+            elif new_status == "completed" and order["status"] == "active": allowed = True
+            elif new_status == "cancelled" and order["status"] == "pending": allowed = True
+        if uid == order["buyer_id"]:
+            if new_status == "cancelled" and order["status"] == "pending": allowed = True
+            elif new_status == "completed" and order["status"] == "active": allowed = True
+        if not allowed:
+            flash("You cannot perform this action.", "warning")
+            return redirect(url_for("order_detail", order_id=order_id))
+        db.execute("UPDATE orders SET status=?, updated_at=datetime('now') WHERE id=?", (new_status, order_id))
+        svc = db.execute("SELECT title FROM services WHERE id=?", (order["service_id"],)).fetchone()
+        label = {"active": "Accepted", "completed": "Completed", "cancelled": "Cancelled"}.get(new_status, new_status.title())
+        other = order["buyer_id"] if uid == order["seller_id"] else order["seller_id"]
+        notify(db, other, f"Order {label}", f"Order for \"{svc['title']}\" is now {label.lower()}.", url_for("order_detail", order_id=order_id))
+    flash(f"Order updated to {new_status}.", "success")
+    return redirect(url_for("order_detail", order_id=order_id))</pre>
+
+
+  <h2>Database Schema (2 pages)</h2>
+  <p><b>What it covers:</b> SQLite schema creation executed on startup. Includes core marketplace tables and important constraints (unique email, rating bounds, foreign keys).</p>
+
+  <p class="blocklabel">Snippet — SQL schema (executescript)</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 62–182)</p>
+  <pre>def init_db():
+    with get_db() as db:
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'buyer',
+                is_admin INTEGER DEFAULT 0,
+                is_banned INTEGER DEFAULT 0,
+                avatar_url TEXT,
+                bio TEXT,
+                location TEXT,
+                website TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                icon TEXT NOT NULL,
+                description TEXT
+            );
+            CREATE TABLE IF NOT EXISTS services (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                delivery_days INTEGER DEFAULT 3,
+                category_id INTEGER NOT NULL,
+                seller_id INTEGER NOT NULL,
+                tags TEXT DEFAULT '[]',
+                image_url TEXT,
+                view_count INTEGER DEFAULT 0,
+                is_approved INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (category_id) REFERENCES categories(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_id INTEGER NOT NULL,
+                reviewer_id INTEGER NOT NULL,
+                rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+                comment TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE,
+                FOREIGN KEY (reviewer_id) REFERENCES users(id),
+                UNIQUE(service_id, reviewer_id)
+            );
+            CREATE TABLE IF NOT EXISTS orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_id INTEGER NOT NULL,
+                buyer_id INTEGER NOT NULL,
+                seller_id INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                payment_method TEXT,
+                payment_ref TEXT,
+                total_price INTEGER NOT NULL,
+                notes TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (service_id) REFERENCES services(id),
+                FOREIGN KEY (buyer_id) REFERENCES users(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS inquiries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_id INTEGER NOT NULL,
+                buyer_id INTEGER NOT NULL,
+                seller_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'open',
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (service_id) REFERENCES services(id),
+                FOREIGN KEY (buyer_id) REFERENCES users(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER,
+                inquiry_id INTEGER,
+                sender_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                is_read INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (order_id) REFERENCES orders(id),
+                FOREIGN KEY (sender_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                link TEXT,
+                is_read INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS support_tickets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                category TEXT DEFAULT 'general',
+                message TEXT NOT NULL,
+                status TEXT DEFAULT 'open',
+                priority TEXT DEFAULT 'normal',
+                admin_reply TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS saved_services (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                service_id INTEGER NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(user_id, service_id)
+            );
+        """)
+        seed_data(db)</pre>
+
+
+  <h2>Notification + Reviews (1 page)</h2>
+  <p><b>What it covers:</b> Notifications are stored in a dedicated table using a helper function, displayed in a notification centre, and marked read. Reviews are “verified” by requiring a completed order.</p>
+
+  <p class="blocklabel">Snippet A — Notification helper + notification centre</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 245–247, 833–847)</p>
+  <pre>def notify(db, user_id, title, body, link=None):
+    db.execute("INSERT INTO notifications (user_id, title, body, link) VALUES (?, ?, ?, ?)", (user_id, title, body, link))
+
+@app.route("/notifications")
+@login_required
+def notifications():
+    with get_db() as db:
+        notifs = db.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC", (session["user_id"],)).fetchall()
+        db.execute("UPDATE notifications SET is_read=1 WHERE user_id=?", (session["user_id"],))
+    return render_template("notifications.html", notifs=notifs)
+
+@app.route("/notifications/mark-all-read", methods=["POST"])
+@login_required
+def mark_all_notifications_read():
+    with get_db() as db:
+        db.execute("UPDATE notifications SET is_read=1 WHERE user_id=?", (session["user_id"],))
+    flash("All marked as read.", "success")
+    return redirect(url_for("notifications"))</pre>
+
+  <p class="blocklabel">Snippet B — Verified reviews (only after completed order)</p>
+  <p class="meta">Source: <span class="path">freelancehub\app.py</span> (lines 467–488)</p>
+  <pre>@app.route("/services/&lt;int:service_id&gt;/review", methods=["POST"])
+@login_required
+def submit_review(service_id):
+    rating = request.form.get("rating", type=int)
+    comment = request.form.get("comment", "").strip()
+    if not rating or rating &lt; 1 or rating &gt; 5:
+        flash("Please select a valid rating.", "danger")
+        return redirect(url_for("service_detail", service_id=service_id))
+    with get_db() as db:
+        has_order = db.execute("SELECT id FROM orders WHERE service_id=? AND buyer_id=? AND status='completed'", (service_id, session["user_id"])).fetchone()
+        if not has_order:
+            flash("You can only review services you have purchased and received.", "warning")
+            return redirect(url_for("service_detail", service_id=service_id))
+        existing = db.execute("SELECT id FROM reviews WHERE service_id=? AND reviewer_id=?", (service_id, session["user_id"])).fetchone()
+        if existing:
+            flash("You have already reviewed this service.", "warning")
+            return redirect(url_for("service_detail", service_id=service_id))
+        db.execute("INSERT INTO reviews (service_id, reviewer_id, rating, comment) VALUES (?, ?, ?, ?)", (service_id, session["user_id"], rating, comment))
+        svc = db.execute("SELECT seller_id, title FROM services WHERE id=?", (service_id,)).fetchone()
+        notify(db, svc["seller_id"], "New Review Received!", f"{session['name']} left a {rating}-star review on \"{svc['title']}\".", url_for("service_detail", service_id=service_id))
+    flash("Review submitted! Thank you.", "success")
+    return redirect(url_for("service_detail", service_id=service_id))</pre>
+
+
+  <h2>Deployment Config (1 page)</h2>
+  <p><b>What it covers:</b> Render deployment configuration: Python runtime, build command, Gunicorn start command, and environment variables.</p>
+
+  <p class="blocklabel">Snippet A — Render deployment config</p>
+  <p class="meta">Source: <span class="path">render.yaml</span> (lines 1–13)</p>
+  <pre>services:
+  - type: web
+    name: freelancehub
+    env: python
+    pythonVersion: "3.11.8"
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir freelancehub app:app --workers 2 --threads 2 --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: false</pre>
+
+  <p class="blocklabel">Snippet B — Procfile</p>
+  <p class="meta">Source: <span class="path">Procfile</span> (line 1)</p>
+  <pre>web: gunicorn --chdir freelancehub app:app --workers 2 --threads 2 --bind 0.0.0.0:$PORT --timeout 120</pre>
+
+</body>
+</html>

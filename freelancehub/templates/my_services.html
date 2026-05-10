@@ -41,7 +41,7 @@
     {% if services %}
     <div style="display:flex;flex-direction:column;gap:14px;">
       {% for s in services %}
-      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;gap:16px;align-items:center;transition:all var(--transition);" class="hover-lift">
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;gap:16px;align-items:center;transition:all var(--transition);" class="hover-lift fh-my-service-row">
         <img src="{{ s.image_url or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=120&fit=crop' }}"
              alt="{{ s.title }}" style="width:100px;height:72px;object-fit:cover;border-radius:var(--radius-md);flex-shrink:0;"
              onerror="this.style.display='none'" />
@@ -60,7 +60,7 @@
             <span style="color:var(--ink);font-weight:600;"><i class="bi bi-currency-rupee me-1"></i>{{ s.price | inr }}</span>
           </div>
         </div>
-        <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;" class="fh-my-service-actions">
           <a href="{{ url_for('service_detail', service_id=s.id) }}" class="btn-outline-fh btn-sm-fh" title="View"><i class="bi bi-eye"></i></a>
           <a href="{{ url_for('edit_service', service_id=s.id) }}" class="btn-outline-fh btn-sm-fh" title="Edit"><i class="bi bi-pencil"></i></a>
           <form method="POST" action="{{ url_for('delete_service', service_id=s.id) }}" onsubmit="return confirm('Delete this service permanently?')">
@@ -80,4 +80,22 @@
     {% endif %}
   </div>
 </div>
+<style>
+@media (max-width: 768px) {
+  .fh-my-service-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+  .fh-my-service-row > img {
+    width: 100% !important;
+    height: 140px !important;
+  }
+  .fh-my-service-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+</style>
 {% endblock %}

@@ -76,6 +76,7 @@ The database is created automatically on first run with demo data.
 | Buyer | carol@demo.com | password123 |
 | Seller | alice@demo.com | password123 |
 | Seller | bob@demo.com | password123 |
+| Seller Pool | seller1@demo.com → seller10@demo.com | password123 |
 
 ---
 

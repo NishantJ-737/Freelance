@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, session, redirect, url_for, j
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import sqlite3, os, re, random, json
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
 app = Flask(__name__)
@@ -13,6 +13,8 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
+app.config["SESSION_PERMANENT"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=14)
 
 CATEGORY_DEFAULT_IMAGES = {
     "design":      "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800&h=500&fit=crop",
@@ -53,9 +55,10 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(DATABASE, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
@@ -242,17 +245,20 @@ def seed_data(db):
             (name, email, generate_password_hash(demo_pw), role, avatar),
         )
 
-    # Add more sellers for richer demo data (only if missing)
-    indian_sellers = [
-        "Riya Singh","Saanvi Gupta","Diya Joshi","Meera Kapoor","Aditi Verma","Ira Chatterjee","Kavya Reddy","Tanvi Kulkarni",
-        "Arjun Mehta","Krishna Menon","Rohit Malhotra","Aditya Rao","Kunal Bansal","Siddharth Jain","Manav Desai","Pranav Kulkarni",
-        "Neha Agarwal","Shreya Bose","Pooja Sinha","Nandini Das","Rahul Khanna","Vikram Sethi","Amanpreet Singh","Nikhil Yadav",
+    # 10 explicit seller demo accounts so any random service can be tested live.
+    seller_demo = [
+        ("Riya Singh", "seller1@demo.com", "https://i.pravatar.cc/150?img=40"),
+        ("Saanvi Gupta", "seller2@demo.com", "https://i.pravatar.cc/150?img=41"),
+        ("Diya Joshi", "seller3@demo.com", "https://i.pravatar.cc/150?img=42"),
+        ("Meera Kapoor", "seller4@demo.com", "https://i.pravatar.cc/150?img=43"),
+        ("Aditi Verma", "seller5@demo.com", "https://i.pravatar.cc/150?img=44"),
+        ("Arjun Mehta", "seller6@demo.com", "https://i.pravatar.cc/150?img=45"),
+        ("Krishna Menon", "seller7@demo.com", "https://i.pravatar.cc/150?img=46"),
+        ("Rohit Malhotra", "seller8@demo.com", "https://i.pravatar.cc/150?img=47"),
+        ("Aditya Rao", "seller9@demo.com", "https://i.pravatar.cc/150?img=48"),
+        ("Nikhil Yadav", "seller10@demo.com", "https://i.pravatar.cc/150?img=49"),
     ]
-    # Reserve unique avatar ids (avoid collisions with demo/admin)
-    avatar_ids = list(range(40, 40 + len(indian_sellers)))
-    for idx, name in enumerate(indian_sellers):
-        email = f"{name.lower().replace(' ','_')}@seller.demo"
-        avatar = f"https://i.pravatar.cc/150?img={avatar_ids[idx]}"
+    for name, email, avatar in seller_demo:
         db.execute(
             "INSERT OR IGNORE INTO users (name, email, password_hash, role, is_admin, avatar_url) VALUES (?, ?, ?, 'seller', 0, ?)",
             (name, email, generate_password_hash(demo_pw), avatar),
@@ -265,7 +271,16 @@ def seed_data(db):
     target_services = 180
     if existing_services < target_services:
         # Get seller ids (exclude admin)
-        seller_rows = db.execute("SELECT id FROM users WHERE role='seller' AND COALESCE(is_deleted,0)=0 AND COALESCE(is_banned,0)=0 AND COALESCE(is_admin,0)=0").fetchall()
+        seller_rows = db.execute("""
+            SELECT id
+            FROM users
+            WHERE role='seller'
+              AND email LIKE 'seller%@demo.com'
+              AND COALESCE(is_deleted,0)=0
+              AND COALESCE(is_banned,0)=0
+              AND COALESCE(is_admin,0)=0
+            ORDER BY id
+        """).fetchall()
         seller_ids = [r["id"] for r in seller_rows] or [db.execute("SELECT id FROM users WHERE email='alice@demo.com'").fetchone()["id"]]
 
         # Deterministic random for repeatable demo
@@ -331,14 +346,46 @@ def seed_data(db):
         }
 
         unsplash_by_cat = {
-            "design": "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop",
-            "development": "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=800&h=500&fit=crop",
-            "writing": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&h=500&fit=crop",
-            "marketing": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=500&fit=crop",
-            "video": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&h=500&fit=crop",
-            "music": "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&h=500&fit=crop",
-            "data": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop",
-            "business": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=500&fit=crop",
+            "design": [
+                "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1634084462412-b54873c0a56d?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&h=500&fit=crop",
+            ],
+            "development": [
+                "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1518773553398-650c184e0bb3?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&h=500&fit=crop",
+            ],
+            "writing": [
+                "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1456324504439-367cee3b3c32?w=800&h=500&fit=crop",
+            ],
+            "marketing": [
+                "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=800&h=500&fit=crop",
+            ],
+            "video": [
+                "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1524253482453-3fed8d2fe12b?w=800&h=500&fit=crop",
+            ],
+            "music": [
+                "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&h=500&fit=crop",
+            ],
+            "data": [
+                "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&h=500&fit=crop",
+            ],
+            "business": [
+                "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=500&fit=crop",
+                "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&h=500&fit=crop",
+            ],
         }
 
         def make_desc(title, slug):
@@ -371,7 +418,7 @@ def seed_data(db):
             category_id = cat[slug]
             seller_id = rng.choice(seller_ids)
             tags = json.dumps(tags_list)
-            img = unsplash_by_cat.get(slug)
+            img = rng.choice(unsplash_by_cat.get(slug, [CATEGORY_DEFAULT_IMAGES.get(slug)]))
             views = int(rng.randint(10, 1500))
             rows.append((title, desc, price, delivery, category_id, seller_id, tags, img, views))
 
@@ -379,6 +426,55 @@ def seed_data(db):
             "INSERT INTO services (title, description, price, delivery_days, category_id, seller_id, tags, image_url, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows,
         )
+    # Improve older seeded data where all same-category services had same image.
+    for slug, img_list in {
+        "design": [
+            "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1634084462412-b54873c0a56d?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&h=500&fit=crop",
+        ],
+        "development": [
+            "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1518773553398-650c184e0bb3?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&h=500&fit=crop",
+        ],
+        "writing": [
+            "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1456324504439-367cee3b3c32?w=800&h=500&fit=crop",
+        ],
+        "marketing": [
+            "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=800&h=500&fit=crop",
+        ],
+        "video": [
+            "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1524253482453-3fed8d2fe12b?w=800&h=500&fit=crop",
+        ],
+        "music": [
+            "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&h=500&fit=crop",
+        ],
+        "data": [
+            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&h=500&fit=crop",
+        ],
+        "business": [
+            "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=500&fit=crop",
+            "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&h=500&fit=crop",
+        ],
+    }.items():
+        cat_row = db.execute("SELECT id FROM categories WHERE slug=?", (slug,)).fetchone()
+        if not cat_row:
+            continue
+        svc_rows = db.execute("SELECT id FROM services WHERE category_id=? ORDER BY id", (cat_row["id"],)).fetchall()
+        for idx, srow in enumerate(svc_rows):
+            db.execute("UPDATE services SET image_url=? WHERE id=?", (img_list[idx % len(img_list)], srow["id"]))
 
 def notify(db, user_id, title, body, link=None):
     db.execute("INSERT INTO notifications (user_id, title, body, link) VALUES (?, ?, ?, ?)", (user_id, title, body, link))
@@ -433,17 +529,16 @@ def inject_user():
                 session.clear()
                 return dict(current_user=None, unread_notifications=0, unread_inquiries=0)
             unread_count = db.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0", (user["id"],)).fetchone()[0]
-            if user.get("role") == "seller":
-                unread_inquiries = db.execute("""
-                    SELECT COUNT(DISTINCT i.id)
-                    FROM inquiries i
-                    JOIN messages m ON m.inquiry_id = i.id
-                    WHERE i.seller_id=?
-                      AND i.status='open'
-                      AND COALESCE(i.seller_deleted,0)=0
-                      AND m.sender_id != ?
-                      AND COALESCE(m.is_read,0)=0
-                """, (user["id"], user["id"])).fetchone()[0]
+            unread_inquiries = db.execute("""
+                SELECT COUNT(DISTINCT i.id)
+                FROM inquiries i
+                JOIN messages m ON m.inquiry_id = i.id
+                WHERE (i.seller_id=? OR i.buyer_id=?)
+                  AND i.status='open'
+                  AND (CASE WHEN i.seller_id=? THEN COALESCE(i.seller_deleted,0)=0 ELSE 1 END)
+                  AND m.sender_id != ?
+                  AND COALESCE(m.is_read,0)=0
+            """, (user["id"], user["id"], user["id"], user["id"])).fetchone()[0]
     return dict(current_user=user, unread_notifications=unread_count, unread_inquiries=unread_inquiries)
 
 @app.route("/login", methods=["GET", "POST"])
@@ -460,6 +555,7 @@ def login():
                 flash("Your account has been suspended.", "danger")
                 return render_template("login.html")
             session["user_id"] = user["id"]
+            session.permanent = True
             session["name"] = user["name"]
             session["role"] = user["role"]
             session["email"] = user["email"]
@@ -495,6 +591,7 @@ def signup():
             user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
             notify(db, user["id"], "Welcome to FreelanceHub!", f"Hi {name}, your account is ready!", url_for("index"))
         session["user_id"] = user["id"]
+        session.permanent = True
         session["name"] = user["name"]
         session["role"] = user["role"]
         session["email"] = user["email"]
@@ -663,7 +760,7 @@ def start_inquiry(service_id):
         """, (service_id, session["user_id"])).fetchone()
 
         # If seller previously deleted/closed the conversation, start a new one.
-        if existing and (existing.get("seller_deleted", 0) == 0):
+        if existing and (int(existing["seller_deleted"] or 0) == 0):
             inquiry_id = existing["id"]
         else:
             db.execute("INSERT INTO inquiries (service_id, buyer_id, seller_id, status, seller_deleted) VALUES (?, ?, ?, 'open', 0)", (service_id, session["user_id"], service["seller_id"]))
@@ -697,7 +794,7 @@ def reply_inquiry(service_id):
             flash("Inquiry not found.", "danger")
             return redirect(url_for("service_detail", service_id=service_id))
         # If seller deleted the thread, buyer must start a new inquiry.
-        if inquiry.get("seller_deleted", 0) and session["user_id"] == inquiry["buyer_id"]:
+        if int(inquiry["seller_deleted"] or 0) and session["user_id"] == inquiry["buyer_id"]:
             flash("This conversation was closed by the seller. Please start a new inquiry.", "warning")
             return redirect(url_for("service_detail", service_id=service_id))
         db.execute("INSERT INTO messages (inquiry_id, sender_id, content) VALUES (?, ?, ?)", (inquiry["id"], session["user_id"], message_text))
@@ -710,7 +807,14 @@ def reply_inquiry(service_id):
 @app.route("/inquiries")
 @login_required
 def inquiries():
+    q = request.args.get("q", "").strip()
     with get_db() as db:
+        params = [session["user_id"], session["user_id"], session["user_id"]]
+        search_sql = ""
+        if q:
+            search_sql = " AND (s.title LIKE ? OR b.name LIKE ? OR sl.name LIKE ?)"
+            like_q = f"%{q}%"
+            params.extend([like_q, like_q, like_q])
         rows = db.execute("""
             SELECT i.*, s.title as service_title, s.image_url as service_image,
                    b.name as buyer_name, sl.name as seller_name,
@@ -728,9 +832,10 @@ def inquiries():
             WHERE i.status='open'
               AND (i.buyer_id=? OR i.seller_id=?)
               AND (CASE WHEN i.seller_id=? THEN COALESCE(i.seller_deleted,0)=0 ELSE 1 END)
+        """ + search_sql + """
             ORDER BY COALESCE(lm.created_at, i.created_at) DESC, i.id DESC
-        """, (session["user_id"], session["user_id"], session["user_id"])).fetchall()
-    return render_template("inquiries.html", inquiries=rows)
+        """, params).fetchall()
+    return render_template("inquiries.html", inquiries=rows, q=q)
 
 @app.route("/inquiries/<int:inquiry_id>")
 @login_required
@@ -753,7 +858,7 @@ def inquiry_detail(inquiry_id):
             flash("Access denied.", "danger")
             return redirect(url_for("index"))
         # If seller deleted the conversation, hide it from seller UI.
-        if session["user_id"] == inquiry["seller_id"] and inquiry.get("seller_deleted", 0):
+        if session["user_id"] == inquiry["seller_id"] and int(inquiry["seller_deleted"] or 0):
             flash("This conversation was deleted.", "info")
             return redirect(url_for("inquiries"))
 
@@ -796,7 +901,7 @@ def inquiry_message(inquiry_id):
         if session["user_id"] not in (inquiry["buyer_id"], inquiry["seller_id"]):
             flash("Access denied.", "danger")
             return redirect(url_for("index"))
-        if session["user_id"] == inquiry["seller_id"] and inquiry.get("seller_deleted", 0):
+        if session["user_id"] == inquiry["seller_id"] and int(inquiry["seller_deleted"] or 0):
             flash("Conversation was deleted.", "info")
             return redirect(url_for("inquiries"))
         db.execute("INSERT INTO messages (inquiry_id, sender_id, content) VALUES (?, ?, ?)", (inquiry_id, session["user_id"], content))
@@ -1490,4 +1595,4 @@ init_db()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_DEBUG","false").lower() == "true"
-    app.run(debug=debug, host="0.0.0.0", port=port)
+    app.run(debug=debug, host="0.0.0.0", port=port, threaded=True)

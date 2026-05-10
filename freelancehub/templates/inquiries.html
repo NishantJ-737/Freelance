@@ -11,6 +11,14 @@
 
 <div class="section-pad">
   <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+    <form method="GET" action="{{ url_for('inquiries') }}" class="fh-panel" style="margin-bottom:14px;padding:12px;display:flex;gap:10px;align-items:center;">
+      <i class="bi bi-search" style="color:var(--text-soft);padding-left:6px;"></i>
+      <input type="text" name="q" value="{{ q or '' }}" class="fh-input" placeholder="Search by service or person name..." style="height:42px;" />
+      <button type="submit" class="btn-outline-fh btn-sm-fh" style="height:42px;">Search</button>
+      {% if q %}
+      <a href="{{ url_for('inquiries') }}" class="btn-outline-fh btn-sm-fh" style="height:42px;">Clear</a>
+      {% endif %}
+    </form>
     {% if inquiries %}
       <div style="display:flex;flex-direction:column;gap:14px;">
         {% for i in inquiries %}
@@ -43,8 +51,8 @@
     {% else %}
       <div class="fh-empty-state">
         <div class="fh-empty-icon">💬</div>
-        <div class="fh-empty-title">No inquiries yet</div>
-        <div class="fh-empty-sub">When buyers message sellers, conversations will appear here.</div>
+        <div class="fh-empty-title">{% if q %}No matching conversations{% else %}No inquiries yet{% endif %}</div>
+        <div class="fh-empty-sub">{% if q %}Try another name or service title.{% else %}When buyers message sellers, conversations will appear here.{% endif %}</div>
         <a href="{{ url_for('browse') }}" class="btn-primary-fh">Browse Services</a>
       </div>
     {% endif %}
