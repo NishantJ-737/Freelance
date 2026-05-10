@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('fh-theme');
+        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        else document.documentElement.removeAttribute('data-theme');
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>{% block title %}FreelanceHub — India's Premium Freelance Marketplace{% endblock %}</title>
@@ -99,9 +108,13 @@
         </details>
 
       {% else %}
-        <a href="{{ url_for('login') }}" class="btn-nav-outline">Log In</a>
-        <a href="{{ url_for('signup') }}" class="btn-nav-primary">Sign Up Free</a>
+        <a href="{{ url_for('login') }}" class="btn-nav-outline fh-nav-auth-desktop">Log In</a>
+        <a href="{{ url_for('signup') }}" class="btn-nav-primary fh-nav-auth-desktop">Sign Up Free</a>
       {% endif %}
+
+      <button type="button" class="fh-theme-toggle" id="fhThemeToggle" aria-label="Toggle light or dark theme" title="Theme">
+        <i class="bi bi-moon-stars" id="fhThemeIcon"></i>
+      </button>
 
       <button class="fh-hamburger" onclick="toggleMobileNav()">
         <i class="bi bi-list"></i>
@@ -279,6 +292,26 @@ document.addEventListener('click', e => {
     if (!drop.contains(e.target)) drop.open = false;
   });
 });
+
+(function initThemeToggle() {
+  const root = document.documentElement;
+  const btn = document.getElementById('fhThemeToggle');
+  const icon = document.getElementById('fhThemeIcon');
+  function syncIcon() {
+    if (!icon) return;
+    icon.className = root.getAttribute('data-theme') === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars';
+  }
+  function setTheme(mode) {
+    if (mode === 'dark') root.setAttribute('data-theme', 'dark');
+    else root.removeAttribute('data-theme');
+    try { localStorage.setItem('fh-theme', mode === 'dark' ? 'dark' : 'light'); } catch (err) {}
+    syncIcon();
+  }
+  if (btn) {
+    btn.addEventListener('click', () => setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+  }
+  syncIcon();
+})();
 
 let navTimer;
 function navAutocomplete(q) {
