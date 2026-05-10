@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Inquiry — {{ inquiry.service_title }}{% endblock %}
+{% block content %}
+<div class="fh-page-banner" style="padding:26px 0;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 40% 80% at 80% 50%,rgba(245,166,35,.14) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:980px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <div style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+      <div style="min-width:0;">
+        <div style="color:rgba(255,255,255,.55);font-size:13px;margin-bottom:6px;">
+          <a href="{{ url_for('inquiries') }}" style="color:rgba(255,255,255,.65);text-decoration:none;">Inquiries</a>
+          <span style="opacity:.5;">/</span>
+          <a href="{{ url_for('service_detail', service_id=inquiry.service_id) }}" style="color:rgba(255,255,255,.65);text-decoration:none;">Service</a>
+        </div>
+        <h1 style="font-family:var(--font-display);font-size:1.7rem;font-weight:900;color:white;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          {{ inquiry.service_title }}
+        </h1>
+        <div style="color:rgba(255,255,255,.55);font-size:13px;margin-top:6px;">
+          {% if current_user.id == inquiry.seller_id %}
+            Buyer: {{ inquiry.buyer_name }}{% if inquiry.buyer_deleted %} (deleted){% endif %}
+          {% else %}
+            Seller: {{ inquiry.seller_name }}
+          {% endif %}
+        </div>
+      </div>
+      {% if allow_delete %}
+      <form method="POST" action="{{ url_for('delete_inquiry', inquiry_id=inquiry.id) }}" style="margin:0;">
+        <button type="submit" class="btn-outline-fh btn-sm-fh"
+                onclick="return confirm('Delete this conversation? The buyer will need to start a new inquiry to message you again.');">
+          <i class="bi bi-trash"></i> Delete Conversation
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:980px;margin:0 auto;padding:0 20px;">
+    <div class="fh-panel" style="padding:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface-2);">
+        <img src="{{ inquiry.service_image or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=240&h=160&fit=crop' }}"
+             alt="{{ inquiry.service_title }}"
+             style="width:58px;height:42px;border-radius:12px;object-fit:cover;border:1px solid var(--border);"
+             onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=240&h=160&fit=crop'"/>
+        <div style="min-width:0;">
+          <div style="font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            Inquiry chat
+          </div>
+          <div style="font-size:12px;color:var(--text-soft);">Messages are stored securely and persist across logout/login.</div>
+        </div>
+      </div>
+
+      <div id="iqMsgs" style="max-height:420px;overflow:auto;padding:16px;background:var(--surface);">
+        {% for m in messages %}
+          <div style="display:flex;flex-direction:column;align-items:{{ 'flex-end' if m.sender_id == current_user.id else 'flex-start' }};margin-bottom:12px;">
+            <div style="font-size:11px;color:var(--text-soft);margin-bottom:4px;">
+              {{ m.sender_name }} · {{ m.created_at | time_ago }}
+            </div>
+            <div style="max-width:78%;padding:10px 12px;border-radius:16px;line-height:1.5;
+                        background:{{ 'rgba(108,99,255,.12)' if m.sender_id == current_user.id else 'var(--surface-2)' }};
+                        border:1px solid var(--border);
+                        color:var(--text);">
+              {{ m.content }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <form method="POST" action="{{ url_for('inquiry_message', inquiry_id=inquiry.id) }}"
+            style="display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--border);background:var(--surface-2);">
+        <textarea name="message" class="fh-textarea" placeholder="Type your message..." style="min-height:66px;flex:1;" required></textarea>
+        <button type="submit" class="btn-primary-fh" style="height:66px;padding:0 18px;flex-shrink:0;">
+          Send <i class="bi bi-send-fill"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const box = document.getElementById('iqMsgs');
+  if (box) box.scrollTop = box.scrollHeight;
+</script>
+{% endblock %}
+

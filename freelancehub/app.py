@@ -59,6 +59,28 @@ def get_db():
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
+def ensure_columns(db):
+    """Lightweight schema migrations for existing SQLite files."""
+    # users: soft-delete
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_deleted INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN deleted_at TEXT")
+    except Exception:
+        pass
+
+    # inquiries: seller can delete/hide thread
+    try:
+        db.execute("ALTER TABLE inquiries ADD COLUMN seller_deleted INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE inquiries ADD COLUMN deleted_at TEXT")
+    except Exception:
+        pass
+
 def init_db():
     with get_db() as db:
         db.executescript("""
@@ -180,12 +202,12 @@ def init_db():
                 UNIQUE(user_id, service_id)
             );
         """)
+        ensure_columns(db)
         seed_data(db)
 
 def seed_data(db):
+    # Seed only once for categories; services/users can be expanded if sparse.
     count = db.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
-    if count > 0:
-        return
     categories = [
         ("Design", "design", "🎨", "Logos, branding, UI/UX and more"),
         ("Development", "development", "💻", "Web, mobile and software development"),
@@ -196,51 +218,167 @@ def seed_data(db):
         ("Data & Analytics", "data", "📊", "Data analysis, Excel, and BI"),
         ("Business", "business", "💼", "Business plans, consulting, and finance"),
     ]
-    db.executemany("INSERT INTO categories (name, slug, icon, description) VALUES (?, ?, ?, ?)", categories)
-    admin = [("Admin User", "admin@freelancehub.com", generate_password_hash("admin123"), "seller", 1)]
-    sellers = [
-        ("Alice Chen", "alice@demo.com", generate_password_hash("password123"), "seller", 0),
-        ("Bob Patel", "bob@demo.com", generate_password_hash("password123"), "seller", 0),
-        ("David Kim", "david@demo.com", generate_password_hash("password123"), "seller", 0),
-    ]
-    buyer = [("Carol Smith", "carol@demo.com", generate_password_hash("password123"), "buyer", 0)]
-    for u in admin + sellers + buyer:
-        db.execute("INSERT OR IGNORE INTO users (name, email, password_hash, role, is_admin) VALUES (?, ?, ?, ?, ?)", u)
-    cat = {row["slug"]: row["id"] for row in db.execute("SELECT id, slug FROM categories")}
-    user = {row["email"]: row["id"] for row in db.execute("SELECT id, email FROM users")}
-    alice, bob, david = user["alice@demo.com"], user["bob@demo.com"], user["david@demo.com"]
-    services = [
-        ("Professional Logo Design", "Eye-catching logos that represent your brand perfectly. Includes unlimited revisions until you are 100% satisfied. Source files (AI, EPS, PNG, SVG) included. I create logos that are unique, memorable, and perfectly tailored to your business identity.", 5999, 3, cat["design"], alice, '["logo","branding","vector"]', "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop", 245),
-        ("Modern Website Development", "Full-stack responsive website with React or plain HTML/CSS. Includes hosting setup, contact form, and SEO basics. I build fast, mobile-first websites that convert visitors into customers.", 29999, 7, cat["development"], bob, '["web","react","responsive"]', "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=800&h=500&fit=crop", 312),
-        ("SEO Blog Content Writing", "Professionally written, keyword-optimised blog posts that rank on Google. 1000-2000 words per article. Research-backed, engaging, and designed to drive organic traffic.", 3499, 2, cat["writing"], david, '["seo","blog","content"]', "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&h=500&fit=crop", 178),
-        ("Social Media Marketing Strategy", "Complete 30-day strategy with content calendar, hashtag research, and analytics reporting. I help brands grow their Instagram, Facebook, and LinkedIn presence.", 16999, 5, cat["marketing"], alice, '["social","instagram","strategy"]', "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=500&fit=crop", 428),
-        ("Professional Video Editing", "Hollywood-style video editing with colour grading, transitions, and background music. Up to 5 minutes. Your raw footage transformed into a cinematic masterpiece.", 9999, 4, cat["video"], bob, '["video","editing","youtube"]', "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&h=500&fit=crop", 203),
-        ("Voice Over Recording", "Studio-quality voice over in English. Clear, professional delivery. Up to 500 words. Perfect for explainer videos, ads, e-learning modules, and podcasts.", 4999, 1, cat["music"], david, '["voiceover","audio","narration"]', "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&h=500&fit=crop", 156),
-        ("Brand Identity Package", "Complete brand kit: logo, colour palette, typography, business card, and brand guidelines. Everything you need to present a unified, professional brand.", 37999, 10, cat["design"], alice, '["branding","identity","design"]', "https://images.unsplash.com/photo-1634084462412-b54873c0a56d?w=800&h=500&fit=crop", 534),
-        ("WordPress Website Development", "Custom WordPress site with a premium theme, plugins, SEO setup, and 1 month of support. Fast, secure, and easy for you to manage.", 23999, 6, cat["development"], bob, '["wordpress","cms","website"]', "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=500&fit=crop", 267),
-        ("Data Analysis & Excel Dashboard", "Automated Excel/Google Sheets dashboards with charts, pivot tables, and KPI tracking. Transform your raw data into actionable insights.", 7999, 3, cat["data"], david, '["excel","data","dashboard"]', "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop", 142),
-        ("Business Plan Writing", "Investor-ready business plans with financial projections, market analysis, and executive summary. Help startups and SMEs present their vision compellingly.", 14999, 7, cat["business"], alice, '["business","plan","startup"]', "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=500&fit=crop", 334),
-    ]
-    db.executemany(
-        "INSERT INTO services (title, description, price, delivery_days, category_id, seller_id, tags, image_url, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        services
+    if count == 0:
+        db.executemany("INSERT INTO categories (name, slug, icon, description) VALUES (?, ?, ?, ?)", categories)
+
+    # Ensure demo/admin users exist (but admin credentials are not shown in UI/README)
+    admin_pw = os.environ.get("ADMIN_PASSWORD", "admin123")
+    db.execute(
+        "INSERT OR IGNORE INTO users (name, email, password_hash, role, is_admin, avatar_url) VALUES (?, ?, ?, ?, ?, ?)",
+        ("Admin User", "admin@freelancehub.com", generate_password_hash(admin_pw), "seller", 1, "https://i.pravatar.cc/150?img=12"),
     )
-    carol = user["carol@demo.com"]
-    svc_ids = [row["id"] for row in db.execute("SELECT id FROM services ORDER BY id LIMIT 6")]
-    reviews_seed = [
-        (svc_ids[0], carol, 5, "Absolutely stunning work! Alice delivered beyond expectations."),
-        (svc_ids[1], carol, 4, "Great website, very professional. Our conversions improved significantly."),
-        (svc_ids[2], carol, 5, "David is a brilliant writer. The blog posts ranked within a week!"),
-        (svc_ids[3], carol, 4, "Solid strategy. Saw real growth on Instagram within 2 weeks."),
-        (svc_ids[4], carol, 5, "My YouTube channel looks professional now. Highly recommended!"),
-        (svc_ids[5], carol, 4, "Clear, professional voice over. Delivered on time."),
+
+    # Make demo accounts Indian + unique avatars (no duplicates)
+    demo_pw = "password123"
+    demo_users = [
+        ("Aarav Sharma", "alice@demo.com", "seller", "https://i.pravatar.cc/150?img=21"),
+        ("Ishaan Patel", "bob@demo.com", "seller", "https://i.pravatar.cc/150?img=22"),
+        ("Vivaan Nair", "david@demo.com", "seller", "https://i.pravatar.cc/150?img=23"),
+        ("Ananya Iyer", "carol@demo.com", "buyer", "https://i.pravatar.cc/150?img=31"),
     ]
-    for rv in reviews_seed:
-        db.execute("INSERT OR IGNORE INTO reviews (service_id, reviewer_id, rating, comment) VALUES (?, ?, ?, ?)", rv)
-    db.execute("""
-        INSERT INTO orders (service_id, buyer_id, seller_id, status, payment_method, total_price, notes)
-        VALUES (?, ?, ?, 'completed', 'upi', ?, 'Please use dark navy blue as primary colour.')
-    """, (svc_ids[0], carol, alice, 5999))
+    for name, email, role, avatar in demo_users:
+        db.execute(
+            "INSERT OR IGNORE INTO users (name, email, password_hash, role, is_admin, avatar_url) VALUES (?, ?, ?, ?, 0, ?)",
+            (name, email, generate_password_hash(demo_pw), role, avatar),
+        )
+
+    # Add more sellers for richer demo data (only if missing)
+    indian_sellers = [
+        "Riya Singh","Saanvi Gupta","Diya Joshi","Meera Kapoor","Aditi Verma","Ira Chatterjee","Kavya Reddy","Tanvi Kulkarni",
+        "Arjun Mehta","Krishna Menon","Rohit Malhotra","Aditya Rao","Kunal Bansal","Siddharth Jain","Manav Desai","Pranav Kulkarni",
+        "Neha Agarwal","Shreya Bose","Pooja Sinha","Nandini Das","Rahul Khanna","Vikram Sethi","Amanpreet Singh","Nikhil Yadav",
+    ]
+    # Reserve unique avatar ids (avoid collisions with demo/admin)
+    avatar_ids = list(range(40, 40 + len(indian_sellers)))
+    for idx, name in enumerate(indian_sellers):
+        email = f"{name.lower().replace(' ','_')}@seller.demo"
+        avatar = f"https://i.pravatar.cc/150?img={avatar_ids[idx]}"
+        db.execute(
+            "INSERT OR IGNORE INTO users (name, email, password_hash, role, is_admin, avatar_url) VALUES (?, ?, ?, 'seller', 0, ?)",
+            (name, email, generate_password_hash(demo_pw), avatar),
+        )
+
+    cat = {row["slug"]: row["id"] for row in db.execute("SELECT id, slug FROM categories")}
+
+    # If services are too few, top-up to ~180.
+    existing_services = db.execute("SELECT COUNT(*) FROM services").fetchone()[0]
+    target_services = 180
+    if existing_services < target_services:
+        # Get seller ids (exclude admin)
+        seller_rows = db.execute("SELECT id FROM users WHERE role='seller' AND COALESCE(is_deleted,0)=0 AND COALESCE(is_banned,0)=0 AND COALESCE(is_admin,0)=0").fetchall()
+        seller_ids = [r["id"] for r in seller_rows] or [db.execute("SELECT id FROM users WHERE email='alice@demo.com'").fetchone()["id"]]
+
+        # Deterministic random for repeatable demo
+        rng = random.Random(20260510)
+
+        templates = {
+            "design": [
+                ("Premium Logo Design for Indian Brands", ["logo","branding","vector"]),
+                ("Instagram Post & Story Pack", ["social","design","posts"]),
+                ("Modern UI/UX for Mobile App", ["ui","ux","app"]),
+                ("Business Card + Letterhead Set", ["stationery","brand"]),
+                ("YouTube Thumbnail Bundle", ["youtube","thumbnail","design"]),
+            ],
+            "development": [
+                ("React Website (Landing + Contact Form)", ["react","web","responsive"]),
+                ("WordPress Business Website Setup", ["wordpress","cms","website"]),
+                ("Flask API Backend + SQLite", ["python","api","flask"]),
+                ("E‑commerce Store (Basic)", ["ecommerce","web","payments"]),
+                ("Bug Fixing & Performance Optimisation", ["debug","performance","web"]),
+            ],
+            "writing": [
+                ("SEO Blog Article (1000–1500 words)", ["seo","blog","content"]),
+                ("Product Descriptions for Store", ["copy","product","ecommerce"]),
+                ("Resume / CV Writing (ATS Friendly)", ["resume","career","ats"]),
+                ("YouTube Script Writing", ["script","youtube","writing"]),
+                ("Proofreading & Editing", ["edit","grammar","writing"]),
+            ],
+            "marketing": [
+                ("Instagram Growth Strategy (30 days)", ["instagram","strategy","growth"]),
+                ("Google Ads Setup + Optimisation", ["ads","google","ppc"]),
+                ("SEO Audit + Keyword Research", ["seo","audit","keywords"]),
+                ("Email Marketing Campaign", ["email","campaign","marketing"]),
+                ("LinkedIn Personal Branding", ["linkedin","branding","b2b"]),
+            ],
+            "video": [
+                ("Reels/Shorts Video Editing", ["reels","shorts","edit"]),
+                ("YouTube Video Editing (5–10 min)", ["youtube","editing","video"]),
+                ("Motion Graphics Intro (5 sec)", ["motion","intro","video"]),
+                ("Colour Grading + Sound Mix", ["color","audio","post"]),
+                ("Wedding Highlight Edit", ["wedding","edit","video"]),
+            ],
+            "music": [
+                ("Hindi/English Voice Over", ["voice","narration","audio"]),
+                ("Podcast Audio Cleanup", ["podcast","audio","noise"]),
+                ("Jingle / Brand Sonic Logo", ["jingle","brand","music"]),
+                ("Background Music for Videos", ["music","background","video"]),
+                ("Audio Mixing & Mastering", ["mix","master","audio"]),
+            ],
+            "data": [
+                ("Excel Dashboard + KPI Tracking", ["excel","dashboard","kpi"]),
+                ("Data Cleaning in Python", ["python","data","cleaning"]),
+                ("Power BI Report", ["powerbi","bi","report"]),
+                ("Web Scraping (Basic)", ["scraping","python","data"]),
+                ("SQL Query Optimisation", ["sql","database","tuning"]),
+            ],
+            "business": [
+                ("Investor Pitch Deck (10 slides)", ["pitch","deck","startup"]),
+                ("Business Plan for Indian Market", ["business","plan","india"]),
+                ("Financial Model (Basic)", ["finance","model","excel"]),
+                ("Market Research Report", ["research","market","analysis"]),
+                ("Startup Consulting Session (60 min)", ["consulting","startup","strategy"]),
+            ],
+        }
+
+        unsplash_by_cat = {
+            "design": "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop",
+            "development": "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=800&h=500&fit=crop",
+            "writing": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&h=500&fit=crop",
+            "marketing": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=500&fit=crop",
+            "video": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&h=500&fit=crop",
+            "music": "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&h=500&fit=crop",
+            "data": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop",
+            "business": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=500&fit=crop",
+        }
+
+        def make_desc(title, slug):
+            base = [
+                "Clear communication and fast delivery.",
+                "Premium quality tailored for Indian clients.",
+                "Includes revisions and helpful guidance.",
+                "Professional workflow with timely updates.",
+            ]
+            return (
+                f"{title}\n\n"
+                f"{rng.choice(base)} {rng.choice(base)}\n\n"
+                "What you get:\n"
+                "- Requirement discussion\n"
+                "- High quality deliverable\n"
+                "- Support after delivery\n"
+            )
+
+        to_add = target_services - existing_services
+        rows = []
+        slugs = list(templates.keys())
+        for i in range(to_add):
+            slug = slugs[i % len(slugs)]
+            title_base, tags_list = rng.choice(templates[slug])
+            city = rng.choice(["Mumbai","Delhi","Bengaluru","Hyderabad","Pune","Chennai","Kolkata","Ahmedabad","Jaipur","Lucknow"])
+            title = f"{title_base} ({city})"
+            desc = make_desc(title_base, slug)
+            price = int(rng.randint(499, 5999) if slug == "writing" else rng.randint(1999, 49999))
+            delivery = int(rng.randint(1, 10))
+            category_id = cat[slug]
+            seller_id = rng.choice(seller_ids)
+            tags = json.dumps(tags_list)
+            img = unsplash_by_cat.get(slug)
+            views = int(rng.randint(10, 1500))
+            rows.append((title, desc, price, delivery, category_id, seller_id, tags, img, views))
+
+        db.executemany(
+            "INSERT INTO services (title, description, price, delivery_days, category_id, seller_id, tags, image_url, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows,
+        )
 
 def notify(db, user_id, title, body, link=None):
     db.execute("INSERT INTO notifications (user_id, title, body, link) VALUES (?, ?, ?, ?)", (user_id, title, body, link))
@@ -287,14 +425,26 @@ def current_user():
 def inject_user():
     user = current_user()
     unread_count = 0
+    unread_inquiries = 0
     if user:
         with get_db() as db:
-            db_user = db.execute("SELECT is_banned FROM users WHERE id=?", (user["id"],)).fetchone()
-            if db_user and db_user["is_banned"]:
+            db_user = db.execute("SELECT is_banned, COALESCE(is_deleted,0) as is_deleted FROM users WHERE id=?", (user["id"],)).fetchone()
+            if db_user and (db_user["is_banned"] or db_user["is_deleted"]):
                 session.clear()
-                return dict(current_user=None, unread_notifications=0)
+                return dict(current_user=None, unread_notifications=0, unread_inquiries=0)
             unread_count = db.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0", (user["id"],)).fetchone()[0]
-    return dict(current_user=user, unread_notifications=unread_count)
+            if user.get("role") == "seller":
+                unread_inquiries = db.execute("""
+                    SELECT COUNT(DISTINCT i.id)
+                    FROM inquiries i
+                    JOIN messages m ON m.inquiry_id = i.id
+                    WHERE i.seller_id=?
+                      AND i.status='open'
+                      AND COALESCE(i.seller_deleted,0)=0
+                      AND m.sender_id != ?
+                      AND COALESCE(m.is_read,0)=0
+                """, (user["id"], user["id"])).fetchone()[0]
+    return dict(current_user=user, unread_notifications=unread_count, unread_inquiries=unread_inquiries)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -304,7 +454,7 @@ def login():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         with get_db() as db:
-            user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            user = db.execute("SELECT * FROM users WHERE email = ? AND COALESCE(is_deleted,0)=0", (email,)).fetchone()
         if user and check_password_hash(user["password_hash"], password):
             if user["is_banned"]:
                 flash("Your account has been suspended.", "danger")
@@ -337,7 +487,7 @@ def signup():
         if role not in ("buyer", "seller"):
             role = "buyer"
         with get_db() as db:
-            existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            existing = db.execute("SELECT id FROM users WHERE email = ? AND COALESCE(is_deleted,0)=0", (email,)).fetchone()
             if existing:
                 flash("An account with this email already exists.", "danger")
                 return render_template("signup.html")
@@ -364,14 +514,14 @@ def index():
     with get_db() as db:
         categories = db.execute("SELECT c.*, COUNT(s.id) as service_count FROM categories c LEFT JOIN services s ON s.category_id = c.id GROUP BY c.id").fetchall()
         trending = db.execute("""
-            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
             WHERE s.is_approved=1 GROUP BY s.id ORDER BY s.view_count DESC LIMIT 4
         """).fetchall()
         featured = db.execute("""
-            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -392,7 +542,7 @@ def browse():
     sort = request.args.get("sort", "newest")
     page = max(1, request.args.get("page", type=int, default=1))
     per_page = 12
-    base_query = """SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+    base_query = """SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
                COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
         FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
         LEFT JOIN reviews r ON r.service_id = s.id WHERE s.is_approved=1"""
@@ -423,7 +573,7 @@ def service_detail(service_id):
     with get_db() as db:
         service = db.execute("""
             SELECT s.*, c.name as category_name, c.slug as category_slug,
-                   u.name as seller_name, u.email as seller_email, u.id as seller_user_id,
+                   u.name as seller_name, u.email as seller_email, u.avatar_url as seller_avatar, u.id as seller_user_id,
                    u.created_at as seller_joined, u.bio as seller_bio,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
@@ -434,7 +584,7 @@ def service_detail(service_id):
             return redirect(url_for("browse"))
         db.execute("UPDATE services SET view_count = view_count + 1 WHERE id = ?", (service_id,))
         related = db.execute("""
-            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -450,7 +600,11 @@ def service_detail(service_id):
             user_review = db.execute("SELECT * FROM reviews WHERE service_id=? AND reviewer_id=?", (service_id, session["user_id"])).fetchone()
             has_order = db.execute("SELECT id FROM orders WHERE service_id=? AND buyer_id=? AND status='completed'", (service_id, session["user_id"])).fetchone()
             can_review = bool(has_order) and not user_review
-            existing_inquiry = db.execute("SELECT * FROM inquiries WHERE service_id=? AND buyer_id=?", (service_id, session["user_id"])).fetchone()
+            existing_inquiry = db.execute("""
+                SELECT * FROM inquiries
+                WHERE service_id=? AND buyer_id=? AND status='open' AND COALESCE(seller_deleted,0)=0
+                ORDER BY id DESC LIMIT 1
+            """, (service_id, session["user_id"])).fetchone()
             is_saved = bool(db.execute("SELECT id FROM saved_services WHERE user_id=? AND service_id=?", (session["user_id"], service_id)).fetchone())
             if existing_inquiry:
                 inquiry_messages = db.execute("""
@@ -502,14 +656,28 @@ def start_inquiry(service_id):
         if not service or service["seller_id"] == session["user_id"]:
             flash("Cannot inquire about this service.", "warning")
             return redirect(url_for("service_detail", service_id=service_id))
-        existing = db.execute("SELECT id FROM inquiries WHERE service_id=? AND buyer_id=?", (service_id, session["user_id"])).fetchone()
-        if existing:
+        existing = db.execute("""
+            SELECT * FROM inquiries
+            WHERE service_id=? AND buyer_id=? AND status='open'
+            ORDER BY id DESC LIMIT 1
+        """, (service_id, session["user_id"])).fetchone()
+
+        # If seller previously deleted/closed the conversation, start a new one.
+        if existing and (existing.get("seller_deleted", 0) == 0):
             inquiry_id = existing["id"]
         else:
-            db.execute("INSERT INTO inquiries (service_id, buyer_id, seller_id) VALUES (?, ?, ?)", (service_id, session["user_id"], service["seller_id"]))
+            db.execute("INSERT INTO inquiries (service_id, buyer_id, seller_id, status, seller_deleted) VALUES (?, ?, ?, 'open', 0)", (service_id, session["user_id"], service["seller_id"]))
             inquiry_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
-            notify(db, service["seller_id"], "New Inquiry!", f"{session['name']} sent an inquiry about \"{service['title']}\".", url_for("service_detail", service_id=service_id))
+
         db.execute("INSERT INTO messages (inquiry_id, sender_id, content) VALUES (?, ?, ?)", (inquiry_id, session["user_id"], message_text))
+
+        notify(
+            db,
+            service["seller_id"],
+            "New Inquiry!",
+            f"{session['name']} sent an inquiry about \"{service['title']}\".",
+            url_for("inquiry_detail", inquiry_id=inquiry_id),
+        )
     flash("Message sent to seller!", "success")
     return redirect(url_for("service_detail", service_id=service_id))
 
@@ -520,16 +688,185 @@ def reply_inquiry(service_id):
     if not message_text:
         return redirect(url_for("service_detail", service_id=service_id))
     with get_db() as db:
-        inquiry = db.execute("SELECT * FROM inquiries WHERE service_id=? AND (buyer_id=? OR seller_id=?)", (service_id, session["user_id"], session["user_id"])).fetchone()
+        inquiry = db.execute("""
+            SELECT * FROM inquiries
+            WHERE service_id=? AND status='open' AND (buyer_id=? OR seller_id=?)
+            ORDER BY id DESC LIMIT 1
+        """, (service_id, session["user_id"], session["user_id"])).fetchone()
         if not inquiry:
             flash("Inquiry not found.", "danger")
+            return redirect(url_for("service_detail", service_id=service_id))
+        # If seller deleted the thread, buyer must start a new inquiry.
+        if inquiry.get("seller_deleted", 0) and session["user_id"] == inquiry["buyer_id"]:
+            flash("This conversation was closed by the seller. Please start a new inquiry.", "warning")
             return redirect(url_for("service_detail", service_id=service_id))
         db.execute("INSERT INTO messages (inquiry_id, sender_id, content) VALUES (?, ?, ?)", (inquiry["id"], session["user_id"], message_text))
         other_id = inquiry["seller_id"] if session["user_id"] == inquiry["buyer_id"] else inquiry["buyer_id"]
         svc = db.execute("SELECT title FROM services WHERE id=?", (service_id,)).fetchone()
-        notify(db, other_id, f"New reply from {session['name']}", f"Reply in inquiry about \"{svc['title']}\".", url_for("service_detail", service_id=service_id))
+        notify(db, other_id, f"New reply from {session['name']}", f"Reply in inquiry about \"{svc['title']}\".", url_for("inquiry_detail", inquiry_id=inquiry["id"]))
     flash("Reply sent!", "success")
     return redirect(url_for("service_detail", service_id=service_id))
+
+@app.route("/inquiries")
+@login_required
+def inquiries():
+    with get_db() as db:
+        rows = db.execute("""
+            SELECT i.*, s.title as service_title, s.image_url as service_image,
+                   b.name as buyer_name, sl.name as seller_name,
+                   COALESCE(b.is_deleted,0) as buyer_deleted,
+                   lm.created_at as last_message_at
+            FROM inquiries i
+            JOIN services s ON i.service_id=s.id
+            JOIN users b ON i.buyer_id=b.id
+            JOIN users sl ON i.seller_id=sl.id
+            LEFT JOIN (
+                SELECT inquiry_id, MAX(created_at) as created_at
+                FROM messages
+                GROUP BY inquiry_id
+            ) lm ON lm.inquiry_id = i.id
+            WHERE i.status='open'
+              AND (i.buyer_id=? OR i.seller_id=?)
+              AND (CASE WHEN i.seller_id=? THEN COALESCE(i.seller_deleted,0)=0 ELSE 1 END)
+            ORDER BY COALESCE(lm.created_at, i.created_at) DESC, i.id DESC
+        """, (session["user_id"], session["user_id"], session["user_id"])).fetchall()
+    return render_template("inquiries.html", inquiries=rows)
+
+@app.route("/inquiries/<int:inquiry_id>")
+@login_required
+def inquiry_detail(inquiry_id):
+    with get_db() as db:
+        inquiry = db.execute("""
+            SELECT i.*, s.title as service_title, s.id as service_id, s.image_url as service_image,
+                   b.name as buyer_name, b.email as buyer_email, COALESCE(b.is_deleted,0) as buyer_deleted,
+                   sl.name as seller_name, sl.email as seller_email
+            FROM inquiries i
+            JOIN services s ON i.service_id=s.id
+            JOIN users b ON i.buyer_id=b.id
+            JOIN users sl ON i.seller_id=sl.id
+            WHERE i.id=?
+        """, (inquiry_id,)).fetchone()
+        if not inquiry:
+            flash("Inquiry not found.", "danger")
+            return redirect(url_for("inquiries"))
+        if session["user_id"] not in (inquiry["buyer_id"], inquiry["seller_id"]) and not session.get("is_admin"):
+            flash("Access denied.", "danger")
+            return redirect(url_for("index"))
+        # If seller deleted the conversation, hide it from seller UI.
+        if session["user_id"] == inquiry["seller_id"] and inquiry.get("seller_deleted", 0):
+            flash("This conversation was deleted.", "info")
+            return redirect(url_for("inquiries"))
+
+        messages = db.execute("""
+            SELECT m.*, u.name as sender_name
+            FROM messages m JOIN users u ON m.sender_id=u.id
+            WHERE m.inquiry_id=? ORDER BY m.created_at ASC
+        """, (inquiry_id,)).fetchall()
+        db.execute("UPDATE messages SET is_read=1 WHERE inquiry_id=? AND sender_id != ?", (inquiry_id, session["user_id"]))
+
+        # Seller delete eligibility:
+        allow_delete = False
+        if session.get("role") == "seller" and session["user_id"] == inquiry["seller_id"]:
+            has_order = db.execute("SELECT 1 FROM orders WHERE service_id=? AND buyer_id=? LIMIT 1", (inquiry["service_id"], inquiry["buyer_id"])).fetchone()
+            last_msg = db.execute("SELECT created_at FROM messages WHERE inquiry_id=? ORDER BY created_at DESC LIMIT 1", (inquiry_id,)).fetchone()
+            last_dt = None
+            if last_msg and last_msg["created_at"]:
+                try:
+                    last_dt = datetime.strptime(last_msg["created_at"], "%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    last_dt = None
+            if inquiry["buyer_deleted"]:
+                allow_delete = True
+            elif not has_order and last_dt and (datetime.utcnow() - last_dt).days >= 3:
+                allow_delete = True
+
+    return render_template("inquiry_detail.html", inquiry=inquiry, messages=messages, allow_delete=allow_delete)
+
+@app.route("/inquiries/<int:inquiry_id>/message", methods=["POST"])
+@login_required
+def inquiry_message(inquiry_id):
+    content = request.form.get("message", "").strip()
+    if not content:
+        return redirect(url_for("inquiry_detail", inquiry_id=inquiry_id))
+    with get_db() as db:
+        inquiry = db.execute("SELECT * FROM inquiries WHERE id=?", (inquiry_id,)).fetchone()
+        if not inquiry:
+            flash("Inquiry not found.", "danger")
+            return redirect(url_for("inquiries"))
+        if session["user_id"] not in (inquiry["buyer_id"], inquiry["seller_id"]):
+            flash("Access denied.", "danger")
+            return redirect(url_for("index"))
+        if session["user_id"] == inquiry["seller_id"] and inquiry.get("seller_deleted", 0):
+            flash("Conversation was deleted.", "info")
+            return redirect(url_for("inquiries"))
+        db.execute("INSERT INTO messages (inquiry_id, sender_id, content) VALUES (?, ?, ?)", (inquiry_id, session["user_id"], content))
+        other_id = inquiry["seller_id"] if session["user_id"] == inquiry["buyer_id"] else inquiry["buyer_id"]
+        svc = db.execute("SELECT title FROM services WHERE id=?", (inquiry["service_id"],)).fetchone()
+        notify(db, other_id, f"New message from {session['name']}", f"Inquiry about \"{svc['title']}\".", url_for("inquiry_detail", inquiry_id=inquiry_id))
+    return redirect(url_for("inquiry_detail", inquiry_id=inquiry_id))
+
+@app.route("/inquiries/<int:inquiry_id>/delete", methods=["POST"])
+@login_required
+def delete_inquiry(inquiry_id):
+    with get_db() as db:
+        inquiry = db.execute("""
+            SELECT i.*, COALESCE(b.is_deleted,0) as buyer_deleted
+            FROM inquiries i JOIN users b ON i.buyer_id=b.id
+            WHERE i.id=?
+        """, (inquiry_id,)).fetchone()
+        if not inquiry:
+            flash("Inquiry not found.", "danger")
+            return redirect(url_for("inquiries"))
+        if session.get("role") != "seller" or session["user_id"] != inquiry["seller_id"]:
+            flash("Only the seller can delete this conversation.", "warning")
+            return redirect(url_for("inquiry_detail", inquiry_id=inquiry_id))
+        has_order = db.execute("SELECT 1 FROM orders WHERE service_id=? AND buyer_id=? LIMIT 1", (inquiry["service_id"], inquiry["buyer_id"])).fetchone()
+        last_msg = db.execute("SELECT created_at FROM messages WHERE inquiry_id=? ORDER BY created_at DESC LIMIT 1", (inquiry_id,)).fetchone()
+        last_dt = None
+        if last_msg and last_msg["created_at"]:
+            try:
+                last_dt = datetime.strptime(last_msg["created_at"], "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                last_dt = None
+        allowed = False
+        if inquiry["buyer_deleted"]:
+            allowed = True
+        elif not has_order and last_dt and (datetime.utcnow() - last_dt).days >= 3:
+            allowed = True
+        if not allowed:
+            flash("You can only delete after 3 days of inactivity (if no order was placed), or if the buyer deleted their account.", "warning")
+            return redirect(url_for("inquiry_detail", inquiry_id=inquiry_id))
+        db.execute("UPDATE inquiries SET seller_deleted=1, deleted_at=datetime('now'), status='closed' WHERE id=?", (inquiry_id,))
+    flash("Conversation deleted.", "success")
+    return redirect(url_for("inquiries"))
+
+@app.route("/account/delete", methods=["POST"])
+@login_required
+def delete_account():
+    """Soft-delete account to avoid breaking foreign key relations."""
+    uid = session["user_id"]
+    with get_db() as db:
+        row = db.execute("SELECT id, is_admin FROM users WHERE id=?", (uid,)).fetchone()
+        if row and row["is_admin"]:
+            flash("Admin accounts cannot be deleted from the UI.", "warning")
+            return redirect(url_for("account"))
+        deleted_email = f"deleted_{uid}_{int(datetime.utcnow().timestamp())}@deleted.local"
+        db.execute("""
+            UPDATE users
+            SET is_deleted=1,
+                deleted_at=datetime('now'),
+                is_banned=1,
+                name='Deleted User',
+                email=?,
+                avatar_url=NULL,
+                bio=NULL,
+                location=NULL,
+                website=NULL
+            WHERE id=?
+        """, (deleted_email, uid))
+    session.clear()
+    flash("Your account was deleted.", "info")
+    return redirect(url_for("index"))
 
 @app.route("/services/<int:service_id>/save", methods=["POST"])
 @login_required
@@ -673,7 +1010,7 @@ def my_services():
 def trending():
     with get_db() as db:
         services = db.execute("""
-            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+            SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -687,7 +1024,7 @@ def recommendations():
     with get_db() as db:
         if category:
             services = db.execute("""
-                SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+                SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
                        COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
                 FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
                 LEFT JOIN reviews r ON r.service_id = s.id
@@ -695,7 +1032,7 @@ def recommendations():
             """, (category,)).fetchall()
         else:
             services = db.execute("""
-                SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+                SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
                        COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
                 FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
                 LEFT JOIN reviews r ON r.service_id = s.id

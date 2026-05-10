@@ -76,7 +76,6 @@ The database is created automatically on first run with demo data.
 | Buyer | carol@demo.com | password123 |
 | Seller | alice@demo.com | password123 |
 | Seller | bob@demo.com | password123 |
-| Admin | admin@freelancehub.com | admin123 |
 
 ---
 

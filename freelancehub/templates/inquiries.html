@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Inquiries — FreelanceHub{% endblock %}
+{% block content %}
+<div class="fh-page-banner" style="padding:32px 0;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 40% 80% at 80% 50%,rgba(108,99,255,.16) 0%,transparent 65%);pointer-events:none;"></div>
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin:0;">Inquiries</h1>
+    <p style="color:rgba(255,255,255,.5);font-size:14px;margin:6px 0 0 0;">Pre‑purchase conversations between buyers and sellers</p>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+    {% if inquiries %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        {% for i in inquiries %}
+          <a href="{{ url_for('inquiry_detail', inquiry_id=i.id) }}"
+             class="fh-panel"
+             style="display:flex;gap:14px;align-items:center;text-decoration:none;">
+            <img src="{{ i.service_image or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=240&h=160&fit=crop' }}"
+                 alt="{{ i.service_title }}"
+                 style="width:86px;height:60px;object-fit:cover;border-radius:12px;border:1px solid var(--border);flex-shrink:0;"
+                 onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=240&h=160&fit=crop'"/>
+            <div style="flex:1;min-width:0;">
+              <div style="font-family:var(--font-display);font-weight:800;color:var(--ink);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                {{ i.service_title }}
+              </div>
+              <div style="font-size:13px;color:var(--text-soft);margin-top:2px;">
+                {% if current_user.id == i.seller_id %}
+                  Buyer: {{ i.buyer_name }}{% if i.buyer_deleted %} (deleted){% endif %}
+                {% else %}
+                  Seller: {{ i.seller_name }}
+                {% endif %}
+              </div>
+              <div style="font-size:12px;color:var(--text-soft);margin-top:4px;">
+                Last message: {{ (i.last_message_at or i.created_at) | time_ago }}
+              </div>
+            </div>
+            <div class="btn-outline-fh btn-sm-fh" style="flex-shrink:0;height:34px;">Open →</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="fh-empty-state">
+        <div class="fh-empty-icon">💬</div>
+        <div class="fh-empty-title">No inquiries yet</div>
+        <div class="fh-empty-sub">When buyers message sellers, conversations will appear here.</div>
+        <a href="{{ url_for('browse') }}" class="btn-primary-fh">Browse Services</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

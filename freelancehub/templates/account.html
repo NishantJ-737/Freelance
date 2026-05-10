@@ -101,8 +101,14 @@
         <!-- Danger Zone -->
         <div id="danger" class="fh-panel" style="border-color:rgba(255,101,132,.25);background:rgba(255,101,132,.03);">
           <div class="fh-panel-title" style="color:var(--accent-2);">⚠️ Danger Zone</div>
-          <p style="font-size:14px;color:var(--text-soft);margin-bottom:16px;">Once you delete your account, all your data including services, orders, and messages will be permanently removed. This action cannot be undone.</p>
-          <a href="{{ url_for('support') }}" class="btn-outline-fh btn-sm-fh" style="color:var(--accent-2);border-color:var(--accent-2);">Contact Support to Delete Account</a>
+          <p style="font-size:14px;color:var(--text-soft);margin-bottom:16px;">
+            Deleting your account will immediately log you out. For safety, we soft-delete your profile to avoid breaking order/message history.
+          </p>
+          <form method="POST" action="{{ url_for('delete_account') }}" onsubmit="return confirm('Delete your account? This logs you out immediately.');">
+            <button type="submit" class="btn-outline-fh btn-sm-fh" style="color:var(--accent-2);border-color:var(--accent-2);">
+              <i class="bi bi-trash"></i> Delete My Account
+            </button>
+          </form>
         </div>
       </div>
     </div>

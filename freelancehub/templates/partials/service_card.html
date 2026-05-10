@@ -11,7 +11,12 @@
   </div>
   <div class="fh-service-body">
     <div class="fh-service-seller">
-      <div class="fh-seller-avatar-sm">{{ s.seller_name[0]|upper }}</div>
+      {% if s.seller_avatar %}
+        <img src="{{ s.seller_avatar }}" alt="{{ s.seller_name }}"
+             style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid var(--border);" />
+      {% else %}
+        <div class="fh-seller-avatar-sm">{{ s.seller_name[0]|upper }}</div>
+      {% endif %}
       <span class="fh-seller-name">{{ s.seller_name }}</span>
     </div>
     <a href="{{ url_for('service_detail', service_id=s.id) }}" class="fh-service-title-link">

@@ -58,6 +58,7 @@
       <li><a href="{{ url_for('trending') }}"><i class="bi bi-graph-up-arrow"></i> Trending</a></li>
       <li><a href="{{ url_for('recommendations') }}"><i class="bi bi-stars"></i> For You</a></li>
       {% if current_user and current_user.role == 'seller' %}
+      <li><a href="{{ url_for('inquiries') }}"><i class="bi bi-chat-dots"></i> Inquiries</a></li>
       <li><a href="{{ url_for('post_service') }}"><i class="bi bi-plus-circle"></i> Post</a></li>
       {% endif %}
       <li><a href="{{ url_for('help_center') }}"><i class="bi bi-life-preserver"></i> Help</a></li>
@@ -74,6 +75,14 @@
         <a href="{{ url_for('my_orders') }}" class="fh-notif-btn fh-desktop-only" title="Orders">
           <i class="bi bi-bag-check"></i>
         </a>
+        {% if current_user.role == 'seller' %}
+        <a href="{{ url_for('inquiries') }}" class="fh-notif-btn fh-desktop-only" title="Inquiries">
+          <i class="bi bi-chat-dots"></i>
+          {% if unread_inquiries > 0 %}
+          <span class="fh-badge">{{ unread_inquiries }}</span>
+          {% endif %}
+        </a>
+        {% endif %}
         {% if current_user.role == 'buyer' %}
         <a href="{{ url_for('saved_services') }}" class="fh-notif-btn fh-desktop-only" title="Saved">
           <i class="bi bi-heart"></i>
@@ -92,6 +101,7 @@
             <a href="{{ url_for('account') }}" class="fh-dropdown-item"><i class="bi bi-gear"></i> Account Settings</a>
             <a href="{{ url_for('my_orders') }}" class="fh-dropdown-item"><i class="bi bi-bag-check"></i> My Orders</a>
             {% if current_user.role == 'seller' %}
+            <a href="{{ url_for('inquiries') }}" class="fh-dropdown-item"><i class="bi bi-chat-dots"></i> Inquiries</a>
             <a href="{{ url_for('my_services') }}" class="fh-dropdown-item"><i class="bi bi-collection"></i> My Services</a>
             <a href="{{ url_for('post_service') }}" class="fh-dropdown-item"><i class="bi bi-plus-circle"></i> Post a Service</a>
             {% endif %}
@@ -133,6 +143,7 @@
   {% if current_user %}
   <a href="{{ url_for('my_orders') }}" class="fh-mobile-nav-item"><i class="bi bi-bag-check"></i> My Orders</a>
   {% if current_user.role == 'seller' %}
+  <a href="{{ url_for('inquiries') }}" class="fh-mobile-nav-item"><i class="bi bi-chat-dots"></i> Inquiries</a>
   <a href="{{ url_for('my_services') }}" class="fh-mobile-nav-item"><i class="bi bi-collection"></i> My Services</a>
   <a href="{{ url_for('post_service') }}" class="fh-mobile-nav-item"><i class="bi bi-plus-circle"></i> Post a Service</a>
   {% endif %}
