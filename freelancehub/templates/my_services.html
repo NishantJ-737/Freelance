@@ -41,7 +41,7 @@
     {% if services %}
     <div style="display:flex;flex-direction:column;gap:14px;">
       {% for s in services %}
-      <div style="background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;gap:16px;align-items:center;transition:all var(--transition);" class="hover-lift">
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;gap:16px;align-items:center;transition:all var(--transition);" class="hover-lift">
         <img src="{{ s.image_url or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=120&fit=crop' }}"
              alt="{{ s.title }}" style="width:100px;height:72px;object-fit:cover;border-radius:var(--radius-md);flex-shrink:0;"
              onerror="this.style.display='none'" />

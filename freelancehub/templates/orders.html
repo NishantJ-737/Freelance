@@ -27,7 +27,7 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;" id="ordersList">
       {% for order in orders %}
-      <div class="order-card" data-status="{{ order.status }}" style="background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;align-items:center;gap:18px;transition:all .22s;flex-wrap:wrap;">
+      <div class="order-card" data-status="{{ order.status }}" style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;align-items:center;gap:18px;transition:all .22s;flex-wrap:wrap;">
         <img src="{{ order.image_url or 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=120&fit=crop' }}" alt="" style="width:80px;height:60px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0;" onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=120&fit=crop'"/>
         <div style="flex:1;min-width:200px;">
           <div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);margin-bottom:4px;">{{ order.service_title }}</div>
