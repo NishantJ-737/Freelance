@@ -164,6 +164,7 @@
 
 [data-theme="dark"] .fh-footer,
 [data-theme="dark"] .fh-trust-section,
+[data-theme="dark"] .fh-page-banner,
 [data-theme="dark"] .fh-profile-hero {
   background: #0c0c14;
 }
@@ -585,6 +586,7 @@ a:hover{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}
 /* ══════════════════════════════════
    TRUST SECTION
 ══════════════════════════════════ */
+.fh-page-banner{background:#0a0a0f;padding:40px 0;position:relative;overflow:hidden;}
 .fh-trust-section{background:var(--ink);padding:60px 0;position:relative;overflow:hidden;}
 .fh-trust-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 80% 50%,rgba(108,99,255,.2) 0%,transparent 65%);pointer-events:none;}
 .fh-trust-item{text-align:center;position:relative;z-index:1;}
