@@ -1,8 +1,8 @@
 /**
  * Hero v13 — Voronoi Cells
  * Living stained-glass cells built from drifting seed points.
- * Cells pulse with colour; mouse seed brightens nearby cells.
- * Elliptical fade around text content area — cells and cursor glow dim near text.
+ * Cells pulse with colour everywhere uniformly.
+ * Cursor glow dims when mouse is near the text content area.
  */
 (function () {
   'use strict';
@@ -50,16 +50,15 @@
     seeds = Array.from({ length: SEED_COUNT }, (_, i) => makeSeed(i));
   }
 
-  // Elliptical fade — dims near content block, full brightness at edges
-  // Never goes fully to 0 so the centre stays subtly coloured (no black blob)
-  function edgeFade(x, y) {
+  // How much to suppress the cursor glow at position (x, y)
+  // Returns 0 inside text area (no glow), 1 at edges (full glow)
+  function cursorGlowFade(x, y) {
     const dx = (x - W * 0.5)  / (W * 0.22);
     const dy = (y - H * 0.54) / (H * 0.38);
     const dist = Math.sqrt(dx * dx + dy * dy);
-    return Math.min(1, Math.max(0.12, (dist - 1.0) / 0.4));
+    return Math.min(1, Math.max(0.0, (dist - 1.0) / 0.4));
   }
 
-  // Find nearest seed index for pixel (px, py)
   function nearest(px, py) {
     let best = 0, bestD = Infinity;
     for (let i = 0; i < seeds.length; i++) {
@@ -72,6 +71,9 @@
 
   const CELL = 6;
 
+  // Cursor glow suppression at current mouse position
+  let cursorFade = 1;
+
   function drawVoronoi() {
     const cols2 = Math.ceil(W / CELL) + 1;
     const rows2 = Math.ceil(H / CELL) + 1;
@@ -79,17 +81,15 @@
     for (let row = 0; row < rows2; row++) {
       for (let col = 0; col < cols2; col++) {
         const px = col * CELL, py = row * CELL;
-        const fade = edgeFade(px, py);
-
         const { idx } = nearest(px, py);
         const s = seeds[idx];
         const pulse = 0.5 + 0.5 * Math.sin(t * 0.8 + s.phase);
 
-        // Mouse proximity glow — also faded near text
+        // Cursor glow suppressed near text
         const mdist = Math.hypot(px - mx, py - my);
-        const mGlow = Math.max(0, 1 - mdist / (W * 0.22)) * 0.6 * fade;
+        const mGlow = Math.max(0, 1 - mdist / (W * 0.22)) * 0.6 * cursorFade;
 
-        const baseAlpha = (0.055 + pulse * 0.07) * fade + mGlow;
+        const baseAlpha = 0.055 + pulse * 0.07 + mGlow;
 
         const [r, g, b] = s.col;
         ctx.fillStyle = `rgba(${r},${g},${b},${baseAlpha.toFixed(3)})`;
@@ -104,8 +104,6 @@
 
     for (let py = 0; py < H; py += STEP) {
       for (let px = 0; px < W; px += STEP) {
-        const fade = edgeFade(px + STEP / 2, py + STEP / 2);
-
         const { idx: c0 } = nearest(px, py);
         const { idx: cr } = nearest(px + STEP, py);
         const { idx: cd } = nearest(px, py + STEP);
@@ -116,7 +114,7 @@
           ctx.beginPath();
           ctx.moveTo(px + STEP, py);
           ctx.lineTo(px + STEP, py + STEP);
-          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5 * fade).toFixed(3)})`;
+          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5).toFixed(3)})`;
           ctx.stroke();
         }
         if (c0 !== cd) {
@@ -125,7 +123,7 @@
           ctx.beginPath();
           ctx.moveTo(px, py + STEP);
           ctx.lineTo(px + STEP, py + STEP);
-          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5 * fade).toFixed(3)})`;
+          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5).toFixed(3)})`;
           ctx.stroke();
         }
       }
@@ -134,11 +132,10 @@
 
   function drawSeeds() {
     for (const s of seeds) {
-      const fade = edgeFade(s.x, s.y);
       const pulse = 0.5 + 0.5 * Math.sin(t * 0.8 + s.phase);
       const r2 = 4 + pulse * 4;
       const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r2 * 3);
-      grd.addColorStop(0, `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${((0.5 + pulse * 0.4) * fade).toFixed(3)})`);
+      grd.addColorStop(0, `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(0.5 + pulse * 0.4).toFixed(3)})`);
       grd.addColorStop(1, `rgba(${s.col[0]},${s.col[1]},${s.col[2]},0)`);
       ctx.beginPath();
       ctx.arc(s.x, s.y, r2 * 3, 0, Math.PI * 2);
@@ -150,6 +147,9 @@
   function frame() {
     ctx.clearRect(0, 0, W, H);
     t += 0.016;
+
+    // Update cursor glow suppression based on mouse position
+    cursorFade = cursorGlowFade(mx, my);
 
     for (const s of seeds) {
       s.x += s.vx; s.y += s.vy;
