@@ -41,14 +41,27 @@
     nodes = Array.from({ length: NODE_COUNT }, makeNode);
   }
 
+  // Returns a 0–1 multiplier: dim near centre (text area), bright near edges
+  function edgeFade(x, y) {
+    const dx = x - W * 0.5;
+    const dy = y - H * 0.44; // text sits slightly above centre
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const innerR = Math.min(W, H) * 0.20; // full dim inside here
+    const outerR = Math.min(W, H) * 0.46; // full bright beyond here
+    return Math.min(1, Math.max(0.06, (dist - innerR) / (outerR - innerR)));
+  }
+
   // Recursive lightning bolt from (x1,y1) to (x2,y2)
   function bolt(x1, y1, x2, y2, depth, col, alpha) {
     if (depth === 0 || alpha < 0.02) {
+      const fade = edgeFade((x1 + x2) / 2, (y1 + y2) / 2);
+      const a = alpha * fade;
+      if (a < 0.015) return;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.strokeStyle = `rgba(${col},${alpha.toFixed(3)})`;
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = `rgba(${col},${a.toFixed(3)})`;
+      ctx.lineWidth = 0.5 + fade * 0.8; // thicker toward edges too
       ctx.stroke();
       return;
     }
