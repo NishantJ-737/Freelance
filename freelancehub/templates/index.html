@@ -237,13 +237,19 @@
   v4: Orbital Rings            (glowing nodes on tilted ellipses with trail effects)
   v5: Morphing Gradient Blobs  (large soft blobs that breathe and drift, mouse attracts)
   v6: Layered Sine Waves       (flowing wave layers with highlight dots, mouse shifts phase)
+  v7: Flow Field               (particles follow layered sine/cosine vector field)
+  v8: Starfield Warp           (stars shoot from mouse origin, accelerate outward)
+  v9: Geometric Pulse          (triangulated grid, edges light up in radial waves on click)
 #}
 {# <script src="{{ url_for('static', filename='js/hero-network.js') }}" defer></script> #}
 {# <script src="{{ url_for('static', filename='js/hero-v2-particles.js') }}" defer></script> #}
 {# <script src="{{ url_for('static', filename='js/hero-v3-grid.js') }}" defer></script> #}
 {# <script src="{{ url_for('static', filename='js/hero-v4-orbits.js') }}" defer></script> #}
 {# <script src="{{ url_for('static', filename='js/hero-v5-blobs.js') }}" defer></script> #}
-<script src="{{ url_for('static', filename='js/hero-v6-waves.js') }}" defer></script>
+{# <script src="{{ url_for('static', filename='js/hero-v6-waves.js') }}" defer></script> #}
+<script src="{{ url_for('static', filename='js/hero-v7-flow.js') }}" defer></script>
+{# <script src="{{ url_for('static', filename='js/hero-v8-warp.js') }}" defer></script> #}
+{# <script src="{{ url_for('static', filename='js/hero-v9-geo.js') }}" defer></script> #}
 <script>
 let heroTimer;
 function heroAutocomplete(q) {
