@@ -10,7 +10,8 @@
       "Bash(\"C:\\\\Program Files\\\\Python38\\\\python.exe\" -c \"import flask; print\\('Flask found:', flask.__version__\\)\")",
       "Bash('C:\\\\Program Files\\\\Python38\\\\python.exe' -c ' *)",
       "Bash(git commit -m ' *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(python append_css.py)"
     ]
   }
 }

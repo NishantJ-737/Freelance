@@ -45,25 +45,19 @@
 <section class="fh-stats-bar">
   <div class="container">
     <div class="fh-stats-bar-inner">
-      <div class="fh-stat" style="padding:0 32px;">
-        <span class="fh-stat-num">{{ total_services }}+</span>
-        <span class="fh-stat-label">Services Listed</span>
+      {% for icon, num, label, color in [
+        ("bi-collection-fill", total_services|string + "+", "Services Listed", "var(--accent)"),
+        ("bi-people-fill",     total_sellers|string + "+", "Expert Freelancers", "var(--accent-3)"),
+        ("bi-bag-check-fill",  total_orders|string + "+",  "Orders Completed",  "var(--gold)"),
+        ("bi-star-fill",       "4.9★",                     "Average Rating",    "var(--accent-2)")
+      ] %}
+      {% if not loop.first %}<div class="fh-stat-divider"></div>{% endif %}
+      <div class="fh-stat">
+        <div class="fh-stat-icon-wrap" style="color:{{ color }};"><i class="bi {{ icon }}"></i></div>
+        <span class="fh-stat-num" data-count-target="{{ num }}">{{ num }}</span>
+        <span class="fh-stat-label">{{ label }}</span>
       </div>
-      <div class="fh-stat-divider"></div>
-      <div class="fh-stat" style="padding:0 32px;">
-        <span class="fh-stat-num">{{ total_sellers }}+</span>
-        <span class="fh-stat-label">Expert Freelancers</span>
-      </div>
-      <div class="fh-stat-divider"></div>
-      <div class="fh-stat" style="padding:0 32px;">
-        <span class="fh-stat-num">{{ total_orders }}+</span>
-        <span class="fh-stat-label">Orders Completed</span>
-      </div>
-      <div class="fh-stat-divider"></div>
-      <div class="fh-stat" style="padding:0 32px;">
-        <span class="fh-stat-num">4.9★</span>
-        <span class="fh-stat-label">Average Rating</span>
-      </div>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -82,9 +76,10 @@
     <div class="fh-cat-grid">
       {% for cat in categories %}
       <a href="{{ url_for('browse', category=cat.slug) }}" class="fh-cat-card">
-        <span class="fh-cat-icon">{{ cat.icon }}</span>
+        <div class="fh-cat-icon-wrap"><span class="fh-cat-icon">{{ cat.icon }}</span></div>
         <span class="fh-cat-name">{{ cat.name }}</span>
         <span class="fh-cat-count">{{ cat.service_count }} services</span>
+        <i class="bi bi-arrow-right fh-cat-arrow"></i>
       </a>
       {% endfor %}
     </div>
@@ -116,16 +111,16 @@
       <h2 class="fh-section-title" style="color:white;">Built for trust &amp; quality</h2>
     </div>
     <div class="fh-trust-grid" style="position:relative;z-index:1;">
-      {% for icon, title, desc in [
-        ("🔒","Secure Payments","All transactions are encrypted and held safely until work is delivered"),
-        ("💬","Pre-Purchase Chat","Discuss requirements with sellers before committing any payment"),
-        ("⭐","Verified Reviews","Only buyers who completed orders can leave reviews — no fakes"),
-        ("🛡️","Satisfaction Promise","Dispute resolution by our team if anything goes wrong"),
-        ("⚡","Fast Delivery","Choose sellers by delivery time — as fast as 24 hours"),
-        ("🇮🇳","Made in India","Built specifically for the Indian freelance ecosystem")
+      {% for icon, title, desc, color in [
+        ("🔒","Secure Payments","All transactions are encrypted and held safely until work is delivered","rgba(108,99,255,.25)"),
+        ("💬","Pre-Purchase Chat","Discuss requirements with sellers before committing any payment","rgba(67,217,173,.25)"),
+        ("⭐","Verified Reviews","Only buyers who completed orders can leave reviews — no fakes","rgba(245,166,35,.25)"),
+        ("🛡️","Satisfaction Promise","Dispute resolution by our team if anything goes wrong","rgba(255,101,132,.25)"),
+        ("⚡","Fast Delivery","Choose sellers by delivery time — as fast as 24 hours","rgba(108,99,255,.25)"),
+        ("🇮🇳","Made in India","Built specifically for the Indian freelance ecosystem","rgba(67,217,173,.25)")
       ] %}
       <div class="fh-trust-item">
-        <span class="fh-trust-icon">{{ icon }}</span>
+        <div class="fh-trust-icon-wrap" style="background:{{ color }};"><span class="fh-trust-icon">{{ icon }}</span></div>
         <div class="fh-trust-title">{{ title }}</div>
         <div class="fh-trust-desc">{{ desc }}</div>
       </div>
@@ -159,16 +154,17 @@
       <h2 class="fh-section-title">What our community says</h2>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:960px;margin:0 auto;width:100%;">
-      {% for quote, name, role in [
-        ("FreelanceHub helped me find an incredible logo designer in under 24 hours. The quality was outstanding and the price was totally fair. The pre-purchase chat feature really builds confidence!","Rahul Mehta","Startup Founder, Mumbai"),
-        ("As a freelancer, this platform has completely transformed my income. The interface is beautiful, orders come regularly, and the payment system is rock-solid.","Priya Sharma","UI/UX Designer, Bengaluru"),
-        ("I've used Fiverr and Upwork — FreelanceHub blows them out of the water for Indian projects. Local context, rupee payments, and way faster response times.","Amit Verma","Marketing Head, Delhi"),
+      {% for quote, name, role, color in [
+        ("FreelanceHub helped me find an incredible logo designer in under 24 hours. The quality was outstanding and the price was totally fair. The pre-purchase chat feature really builds confidence!","Rahul Mehta","Startup Founder, Mumbai","var(--accent)"),
+        ("As a freelancer, this platform has completely transformed my income. The interface is beautiful, orders come regularly, and the payment system is rock-solid.","Priya Sharma","UI/UX Designer, Bengaluru","var(--accent-3)"),
+        ("I've used Fiverr and Upwork — FreelanceHub blows them out of the water for Indian projects. Local context, rupee payments, and way faster response times.","Amit Verma","Marketing Head, Delhi","var(--gold)"),
       ] %}
-      <div class="fh-testimonial">
-        <div style="color:var(--gold);font-size:16px;margin-bottom:12px;">★★★★★</div>
-        <p class="fh-testimonial-text">"{{ quote }}"</p>
+      <div class="fh-testimonial" style="--tcolor:{{ color }};">
+        <div class="fh-testimonial-quote">"</div>
+        <div style="color:var(--gold);font-size:14px;margin-bottom:14px;letter-spacing:2px;">★★★★★</div>
+        <p class="fh-testimonial-text">{{ quote }}</p>
         <div class="fh-testimonial-author">
-          <div class="fh-seller-avatar-sm" style="width:36px;height:36px;font-size:14px;">{{ name[0] }}</div>
+          <div class="fh-seller-avatar-sm" style="width:40px;height:40px;font-size:15px;background:{{ color }};color:white;flex-shrink:0;">{{ name[0] }}</div>
           <div>
             <div class="fh-testimonial-name">{{ name }}</div>
             <div class="fh-testimonial-role">{{ role }}</div>
@@ -181,22 +177,52 @@
 </section>
 
 <!-- ══════ CTA ══════ -->
-<section class="section-pad" style="background:var(--accent);position:relative;overflow:hidden;">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%, rgba(255,255,255,.1) 0%,transparent 70%);pointer-events:none;"></div>
-  <div class="container" style="text-align:center;position:relative;z-index:1;">
-    <div style="font-size:2rem;margin-bottom:12px;">🚀</div>
-    <h2 style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:white;margin-bottom:12px;">Ready to get started?</h2>
-    <p style="font-size:16px;color:rgba(255,255,255,.8);margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto;">Join thousands of businesses and freelancers growing together on FreelanceHub</p>
-    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-      {% if not current_user %}
-      <a href="{{ url_for('signup') }}" class="btn-dark-fh">Get Started Free <i class="bi bi-arrow-right"></i></a>
-      <a href="{{ url_for('browse') }}" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 28px;border-radius:var(--radius-lg);background:rgba(255,255,255,.15);color:white;font-family:var(--font-display);font-weight:700;font-size:15px;text-decoration:none;border:2px solid rgba(255,255,255,.3);transition:all .22s;">Browse Services</a>
-      {% else %}
-      <a href="{{ url_for('browse') }}" class="btn-dark-fh">Browse Services <i class="bi bi-arrow-right"></i></a>
-      {% if current_user.role == 'seller' %}
-      <a href="{{ url_for('post_service') }}" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 28px;border-radius:var(--radius-lg);background:rgba(255,255,255,.15);color:white;font-family:var(--font-display);font-weight:700;font-size:15px;text-decoration:none;border:2px solid rgba(255,255,255,.3);">Post a Service</a>
-      {% endif %}
-      {% endif %}
+<section class="fh-cta-section">
+  <div class="fh-cta-orb fh-cta-orb-1"></div>
+  <div class="fh-cta-orb fh-cta-orb-2"></div>
+  <div class="fh-cta-orb fh-cta-orb-3"></div>
+  <div class="container" style="position:relative;z-index:2;">
+    <div style="text-align:center;margin-bottom:48px;">
+      <div class="fh-cta-badge">🚀 Join 10,000+ growing businesses</div>
+      <h2 class="fh-cta-title">The smarter way to<br><span class="fh-cta-gradient">hire &amp; get hired</span></h2>
+      <p class="fh-cta-sub">India's most trusted freelance marketplace — transparent pricing, verified talent, secure payments.</p>
+    </div>
+    <div class="fh-cta-cards">
+      <!-- Buyer card -->
+      <div class="fh-cta-card fh-cta-card-buyer">
+        <div class="fh-cta-card-icon">🛍️</div>
+        <div class="fh-cta-card-label">For Businesses</div>
+        <h3 class="fh-cta-card-title">Find the perfect freelancer</h3>
+        <p class="fh-cta-card-desc">Browse thousands of verified services across design, development, writing and more.</p>
+        <ul class="fh-cta-list">
+          <li><i class="bi bi-check-circle-fill"></i> Post jobs for free</li>
+          <li><i class="bi bi-check-circle-fill"></i> Chat before you pay</li>
+          <li><i class="bi bi-check-circle-fill"></i> Satisfaction guaranteed</li>
+        </ul>
+        <a href="{{ url_for('browse') }}" class="fh-cta-btn fh-cta-btn-primary">Browse Services <i class="bi bi-arrow-right"></i></a>
+      </div>
+
+      <div class="fh-cta-divider"><span>or</span></div>
+
+      <!-- Seller card -->
+      <div class="fh-cta-card fh-cta-card-seller">
+        <div class="fh-cta-card-icon">⭐</div>
+        <div class="fh-cta-card-label">For Freelancers</div>
+        <h3 class="fh-cta-card-title">Turn your skills into income</h3>
+        <p class="fh-cta-card-desc">Create your service, set your price, and start earning from India's fastest-growing platform.</p>
+        <ul class="fh-cta-list">
+          <li><i class="bi bi-check-circle-fill"></i> Free to join &amp; list</li>
+          <li><i class="bi bi-check-circle-fill"></i> Instant rupee payouts</li>
+          <li><i class="bi bi-check-circle-fill"></i> Grow your reputation</li>
+        </ul>
+        {% if not current_user %}
+        <a href="{{ url_for('signup') }}" class="fh-cta-btn fh-cta-btn-accent">Start Selling Free <i class="bi bi-arrow-right"></i></a>
+        {% elif current_user.role == 'seller' %}
+        <a href="{{ url_for('post_service') }}" class="fh-cta-btn fh-cta-btn-accent">Post a Service <i class="bi bi-arrow-right"></i></a>
+        {% else %}
+        <a href="{{ url_for('signup') }}" class="fh-cta-btn fh-cta-btn-accent">Become a Seller <i class="bi bi-arrow-right"></i></a>
+        {% endif %}
+      </div>
     </div>
   </div>
 </section>
