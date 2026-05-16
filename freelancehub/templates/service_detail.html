@@ -314,7 +314,6 @@
 <style>
 @media(max-width:900px){.service-detail-grid{grid-template-columns:1fr !important;}}
 </style>
-{% endblock %}
 
 <!-- Packages Modal (seller only) -->
 {% if current_user and current_user.id == service.seller_id %}
@@ -357,6 +356,7 @@
   </div>
 </div>
 {% endif %}
+{% endblock %}
 
 {% block scripts %}
 <script>

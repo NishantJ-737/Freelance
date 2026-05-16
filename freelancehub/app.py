@@ -773,14 +773,20 @@ def service_detail(service_id):
         seller_avg_rating = db.execute("SELECT COALESCE(AVG(r.rating),0) FROM reviews r JOIN services s ON r.service_id=s.id WHERE s.seller_id=?", (service["seller_id"],)).fetchone()[0]
         seller_level = get_seller_level(seller_order_count, seller_avg_rating)
         faqs = db.execute("SELECT * FROM service_faqs WHERE service_id=? ORDER BY sort_order, id", (service_id,)).fetchall()
-        packages = json.loads(service["packages"]) if service.get("packages") else []
+        try:
+            packages = json.loads(service["packages"]) if service["packages"] else []
+        except Exception:
+            packages = []
         custom_offer = None
         if "user_id" in session and existing_inquiry:
             custom_offer = db.execute(
                 "SELECT * FROM custom_offers WHERE inquiry_id=? AND status='pending' ORDER BY id DESC LIMIT 1",
                 (existing_inquiry["id"],)
             ).fetchone()
-    tags = json.loads(service["tags"]) if service["tags"] else []
+    try:
+        tags = json.loads(service["tags"]) if service["tags"] else []
+    except Exception:
+        tags = []
     return render_template("service_detail.html", service=service, related=related, tags=tags,
                            reviews=reviews, user_review=user_review, can_review=can_review,
                            seller_order_count=seller_order_count, existing_inquiry=existing_inquiry,
@@ -987,7 +993,7 @@ def inquiry_message(inquiry_id):
         db.execute("INSERT INTO messages (inquiry_id, sender_id, content) VALUES (?, ?, ?)", (inquiry_id, session["user_id"], content))
         other_id = inquiry["seller_id"] if session["user_id"] == inquiry["buyer_id"] else inquiry["buyer_id"]
         svc = db.execute("SELECT title FROM services WHERE id=?", (inquiry["service_id"],)).fetchone()
-        notify(db, other_id, f"New message from {session['name']}", f"Inquiry about \"{svc['title']}\".", url_for("inquiry_detail", inquiry_id=inquiry_id))
+        notify(db, other_id, f"New message from {session['name']}", f"Inquiry about \"{svc['title'] if svc else 'service'}\".", url_for("inquiry_detail", inquiry_id=inquiry_id))
     return redirect(url_for("inquiry_detail", inquiry_id=inquiry_id))
 
 @app.route("/inquiries/<int:inquiry_id>/delete", methods=["POST"])
@@ -1815,7 +1821,7 @@ def export_orders():
     writer = csv.writer(output)
     writer.writerow(headers)
     for r in rows:
-        writer.writerow([r[0], r[1], r[2] / 100 if r[2] else 0, r[3], r[4], r[5], r[6], r[7]])
+        writer.writerow([r[0], r[1], r[2] if r[2] else 0, r[3], r[4], r[5], r[6], r[7]])
     from flask import make_response
     resp = make_response(output.getvalue())
     resp.headers["Content-Type"] = "text/csv"
