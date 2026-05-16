@@ -50,12 +50,13 @@
     seeds = Array.from({ length: SEED_COUNT }, (_, i) => makeSeed(i));
   }
 
-  // Elliptical fade — 0 inside content block, 1 toward edges
+  // Elliptical fade — dims near content block, full brightness at edges
+  // Never goes fully to 0 so the centre stays subtly coloured (no black blob)
   function edgeFade(x, y) {
     const dx = (x - W * 0.5)  / (W * 0.22);
     const dy = (y - H * 0.54) / (H * 0.38);
     const dist = Math.sqrt(dx * dx + dy * dy);
-    return Math.min(1, Math.max(0.0, (dist - 1.0) / 0.4));
+    return Math.min(1, Math.max(0.12, (dist - 1.0) / 0.4));
   }
 
   // Find nearest seed index for pixel (px, py)
@@ -79,7 +80,6 @@
       for (let col = 0; col < cols2; col++) {
         const px = col * CELL, py = row * CELL;
         const fade = edgeFade(px, py);
-        if (fade < 0.01) continue; // skip fully hidden cells
 
         const { idx } = nearest(px, py);
         const s = seeds[idx];
@@ -105,7 +105,6 @@
     for (let py = 0; py < H; py += STEP) {
       for (let px = 0; px < W; px += STEP) {
         const fade = edgeFade(px + STEP / 2, py + STEP / 2);
-        if (fade < 0.01) continue;
 
         const { idx: c0 } = nearest(px, py);
         const { idx: cr } = nearest(px + STEP, py);
@@ -136,7 +135,6 @@
   function drawSeeds() {
     for (const s of seeds) {
       const fade = edgeFade(s.x, s.y);
-      if (fade < 0.01) continue;
       const pulse = 0.5 + 0.5 * Math.sin(t * 0.8 + s.phase);
       const r2 = 4 + pulse * 4;
       const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r2 * 3);
