@@ -52,13 +52,13 @@
   }
 
   // 0–1 multiplier: near-zero at text centre, full brightness at edges
+  // Elliptical fade — matches the actual content block shape
+  // Invisible inside the ellipse, full brightness outside it
   function edgeFade(x, y) {
-    const dx = x - W * 0.5;
-    const dy = y - H * 0.44;
+    const dx = (x - W * 0.5)  / (W * 0.22); // content half-width
+    const dy = (y - H * 0.54) / (H * 0.38); // content half-height, centred below mid
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const innerR = Math.min(W, H) * 0.32;
-    const outerR = Math.min(W, H) * 0.62;
-    return Math.min(1, Math.max(0.0, (dist - innerR) / (outerR - innerR)));
+    return Math.min(1, Math.max(0.0, (dist - 1.0) / 0.4));
   }
 
   function frame() {
