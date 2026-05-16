@@ -197,10 +197,14 @@ async function loadMore(btn) {
     const data = await res.json();
     const tmp = document.createElement('div');
     tmp.innerHTML = data.html;
-    tmp.querySelectorAll('.fh-service-card').forEach(c => {
-      c.style.opacity = '0'; c.style.transform = 'translateY(16px)';
+    tmp.querySelectorAll('.fh-service-card').forEach((c, i) => {
+      c.style.opacity = '0'; c.style.transform = 'translateY(20px)';
       grid.appendChild(c);
-      requestAnimationFrame(() => { c.style.transition = 'all .35s ease'; c.style.opacity = '1'; c.style.transform = 'translateY(0)'; });
+      setTimeout(() => {
+        c.style.transition = 'opacity .4s ease, transform .4s cubic-bezier(.22,.61,.36,1)';
+        c.style.opacity = '1'; c.style.transform = 'translateY(0)';
+        if (window._attachTilt) window._attachTilt(c);
+      }, i * 60);
     });
     btn.dataset.page = nextPage;
     spinner.style.display = 'none';

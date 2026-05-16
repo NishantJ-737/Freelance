@@ -113,19 +113,30 @@ function copyToClipboard(text, btn) {
   });
 }
 
-// ── Smooth number animation on stats ─────────────────────────────
+// ── Stat counter animation ────────────────────────────────────────
 function animateCount(el) {
-  const target = parseInt(el.dataset.target || el.textContent.replace(/\D/g, ''));
-  if (!target) return;
-  let start = 0;
-  const duration = 1200;
+  const raw = el.dataset.countTarget || el.textContent;
+  const duration = 1400;
   const startTime = performance.now();
-  const update = (now) => {
-    const elapsed = now - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    const ease = 1 - Math.pow(1 - progress, 3);
-    el.textContent = Math.round(start + (target - start) * ease).toLocaleString('en-IN') + '+';
-    if (progress < 1) requestAnimationFrame(update);
+  // "4.9★" — float with star suffix
+  if (raw.includes('★')) {
+    const target = parseFloat(raw);
+    const update = now => {
+      const ease = 1 - Math.pow(1 - Math.min((now - startTime) / duration, 1), 3);
+      el.textContent = (target * ease).toFixed(1) + '★';
+      if (ease < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+    return;
+  }
+  // "1500+" — integer with plus suffix
+  const suffix = raw.includes('+') ? '+' : '';
+  const target = parseInt(raw.replace(/\D/g, ''));
+  if (!target) return;
+  const update = now => {
+    const ease = 1 - Math.pow(1 - Math.min((now - startTime) / duration, 1), 3);
+    el.textContent = Math.round(target * ease).toLocaleString('en-IN') + suffix;
+    if (ease < 1) requestAnimationFrame(update);
   };
   requestAnimationFrame(update);
 }
@@ -139,7 +150,74 @@ function initStatCounters() {
       }
     });
   }, { threshold: 0.5 });
-  document.querySelectorAll('.fh-stat-num[data-target]').forEach(el => observer.observe(el));
+  document.querySelectorAll('.fh-stat-num[data-count-target]').forEach(el => observer.observe(el));
+}
+
+// ── Scroll-triggered reveal ───────────────────────────────────────
+function initScrollReveal() {
+  const SELECTORS = [
+    '.fh-section-header', '.fh-stat', '.fh-cat-card', '.fh-trust-item',
+    '.fh-testimonial', '.fh-service-card', '.fh-dash-stat', '.fh-stat-box',
+    '.fh-panel', '.fh-my-service-row', '.fh-cta-card',
+  ];
+  SELECTORS.forEach(sel => {
+    document.querySelectorAll(sel).forEach((el, i) => {
+      if (el.closest('.fh-chatbox') || el.closest('.fh-navbar')) return;
+      el.classList.add('fh-reveal');
+      // Stagger siblings: max 0.35s delay, cycling per 4
+      el.style.transitionDelay = ((i % 4) * 0.09) + 's';
+    });
+  });
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('fh-visible');
+        io.unobserve(e.target);
+        setTimeout(() => { e.target.style.transitionDelay = '0s'; }, 700);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+  document.querySelectorAll('.fh-reveal').forEach(el => io.observe(el));
+}
+
+// ── Cursor spotlight glow ─────────────────────────────────────────
+function initCursorGlow() {
+  if (window.matchMedia('(hover: none)').matches) return;
+  const glow = document.createElement('div');
+  glow.id = 'fh-cursor-glow';
+  document.body.appendChild(glow);
+  let mx = 0, my = 0, gx = window.innerWidth / 2, gy = window.innerHeight / 2;
+  let visible = false;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; if (!visible) { visible = true; glow.style.opacity = '1'; } });
+  document.addEventListener('mouseleave', () => { visible = false; glow.style.opacity = '0'; });
+  (function tick() {
+    gx += (mx - gx) * 0.07;
+    gy += (my - gy) * 0.07;
+    glow.style.left = gx + 'px';
+    glow.style.top = gy + 'px';
+    requestAnimationFrame(tick);
+  })();
+}
+
+// ── 3D card tilt ──────────────────────────────────────────────────
+function initCardTilt() {
+  if (window.matchMedia('(hover: none)').matches) return;
+  function attachTilt(card) {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      const rx = ((e.clientY - r.top - r.height / 2) / (r.height / 2)) * -7;
+      const ry = ((e.clientX - r.left - r.width / 2) / (r.width / 2)) * 7;
+      card.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-5px) scale(1.01)`;
+      card.style.transition = 'transform .08s linear';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+      card.style.transition = 'transform .35s cubic-bezier(.22,.61,.36,1)';
+    });
+  }
+  document.querySelectorAll('.fh-service-card').forEach(attachTilt);
+  // Also attach to newly loaded cards (Load More)
+  window._attachTilt = attachTilt;
 }
 
 // ── Lazy load images ──────────────────────────────────────────────
@@ -259,6 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initRoleCards();
   initPasswordStrength();
   initScrollTop();
+  initScrollReveal();
+  initCursorGlow();
+  initCardTilt();
 
   // Checkout payment steps
   document.querySelectorAll('.fh-checkout-step').forEach(step => {

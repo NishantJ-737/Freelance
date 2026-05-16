@@ -1528,3 +1528,20 @@ section, .fh-hero, .fh-trust-section,
 
 /* Portfolio grid in profile */
 .fh-portfolio-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+
+/* ── Scroll reveal ───────────────────────────────────────────────── */
+.fh-reveal { opacity: 0; transform: translateY(24px); transition: opacity .55s ease, transform .55s cubic-bezier(.22,.61,.36,1); }
+.fh-reveal.fh-visible { opacity: 1; transform: none !important; }
+
+/* ── Cursor glow ─────────────────────────────────────────────────── */
+#fh-cursor-glow {
+  position: fixed; pointer-events: none; z-index: 0;
+  width: 520px; height: 520px; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(108,99,255,.07) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  opacity: 0; transition: opacity .4s ease;
+}
+[data-theme="dark"] #fh-cursor-glow { background: radial-gradient(circle at center, rgba(108,99,255,.11) 0%, transparent 70%); }
+
+/* ── Card tilt — smooth reset via JS, disable CSS hover transform conflict ── */
+.fh-service-card { transform-style: preserve-3d; }
