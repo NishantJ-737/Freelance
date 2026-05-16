@@ -13,7 +13,14 @@
       <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:800;color:white;">Order #{{ order.id }}</h1>
       <span class="status-badge status-{{ order.status }}" style="font-size:13px;">{{ order.status | title }}</span>
     </div>
-    <p style="color:rgba(255,255,255,.45);font-size:13px;margin-top:4px;">Placed on {{ order.created_at[:10] }} · Ref: {{ order.payment_ref or 'N/A' }}</p>
+    <p style="color:rgba(255,255,255,.45);font-size:13px;margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span>Placed on {{ order.created_at[:10] }} · Ref: <span id="order-ref">{{ order.payment_ref or 'N/A' }}</span></span>
+      {% if order.payment_ref %}
+      <button onclick="copyRef()" id="copy-ref-btn" title="Copy reference" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:2px 8px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .2s;">
+        <i class="bi bi-copy" id="copy-ref-icon"></i><span id="copy-ref-label">Copy</span>
+      </button>
+      {% endif %}
+    </p>
   </div>
 </div>
 
@@ -261,5 +268,17 @@ if (mc) mc.scrollTop = mc.scrollHeight;
   tick();
   setInterval(tick, 1000);
 })();
+
+function copyRef() {
+  const ref = document.getElementById('order-ref').textContent.trim();
+  navigator.clipboard.writeText(ref).then(() => {
+    const icon = document.getElementById('copy-ref-icon');
+    const label = document.getElementById('copy-ref-label');
+    const btn = document.getElementById('copy-ref-btn');
+    icon.className = 'bi bi-check2'; label.textContent = 'Copied!';
+    btn.style.color = 'rgba(67,217,173,.9)'; btn.style.borderColor = 'rgba(67,217,173,.4)';
+    setTimeout(() => { icon.className = 'bi bi-copy'; label.textContent = 'Copy'; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+  });
+}
 </script>
 {% endblock %}

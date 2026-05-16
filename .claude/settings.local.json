@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Semester\\\\.claude\\\\worktrees\\\\fervent-perlman-51b5c4\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app.py', encoding='utf-8'\\).read\\(\\)\\); print\\('app.py syntax OK'\\)\")",
+      "Bash(where python *)",
+      "Bash(pip list *)",
+      "Bash(\"C:\\\\Program Files\\\\Python38\\\\python.exe\" -c \"import flask; print\\('Flask found:', flask.__version__\\)\")",
+      "Bash('C:\\\\Program Files\\\\Python38\\\\python.exe' -c ' *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git add *)"
+    ]
+  }
+}

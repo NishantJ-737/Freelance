@@ -1991,6 +1991,14 @@ def payment_label(method):
     labels = {"upi":"UPI","netbanking":"Net Banking","card":"Credit / Debit Card","paypal":"PayPal","bank_transfer":"Bank Transfer","wallet":"Digital Wallet"}
     return labels.get(method, method.title() if method else "—")
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template("500.html"), 500
+
 # Always initialise the database — works with both gunicorn and direct run
 init_db()
 

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Server Error — FreelanceHub{% endblock %}
+{% block content %}
+<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;padding:60px 20px;text-align:center;">
+  <div>
+    <div style="font-family:var(--font-display);font-size:clamp(80px,20vw,160px);font-weight:900;line-height:1;background:linear-gradient(135deg,var(--accent-2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0;">500</div>
+    <div style="font-size:14px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-soft);margin-bottom:16px;">Internal Server Error</div>
+    <h1 style="font-family:var(--font-display);font-size:clamp(1.4rem,4vw,2rem);font-weight:800;color:var(--ink);margin-bottom:12px;">Something went wrong on our end.</h1>
+    <p style="font-size:15px;color:var(--text-mid);max-width:420px;margin:0 auto 32px;line-height:1.7;">Our team has been notified and we're working on a fix. Please try again in a moment.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="{{ url_for('index') }}" class="btn-primary-fh"><i class="bi bi-house me-2"></i>Go Home</a>
+      <a href="javascript:history.back()" class="btn-outline-fh"><i class="bi bi-arrow-left me-2"></i>Go Back</a>
+    </div>
+    <div style="margin-top:48px;padding:20px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);max-width:480px;margin-left:auto;margin-right:auto;">
+      <div style="font-size:13px;color:var(--text-soft);">If this keeps happening, please <a href="{{ url_for('support') }}" style="color:var(--accent);">contact support</a> or check our <a href="{{ url_for('help_center') }}" style="color:var(--accent);">help center</a>.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

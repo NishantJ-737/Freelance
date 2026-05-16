@@ -22,6 +22,9 @@
 </head>
 <body>
 
+<!-- Scroll progress bar -->
+<div id="fh-scroll-bar" style="position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-3));z-index:9999;transition:width .1s linear;pointer-events:none;"></div>
+
 <nav class="fh-navbar">
   <div class="fh-navbar-inner">
 
@@ -260,6 +263,28 @@
   </div>
 </footer>
 
+<!-- Back to top -->
+<button id="fh-back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top" style="position:fixed;bottom:80px;right:24px;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--accent);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(12px);transition:all .3s ease;z-index:800;box-shadow:0 4px 16px rgba(0,0,0,.18);"><i class="bi bi-chevron-up"></i></button>
+
+<!-- Mobile bottom nav (logged-in only, mobile only) -->
+{% if current_user %}
+<nav class="fh-bottom-nav">
+  <a href="{{ url_for('browse') }}" class="fh-bottom-nav-item {% if request.endpoint == 'browse' %}active{% endif %}">
+    <i class="bi bi-grid-3x3-gap"></i><span>Browse</span>
+  </a>
+  <a href="{{ url_for('inquiries') }}" class="fh-bottom-nav-item {% if request.endpoint == 'inquiries' %}active{% endif %}">
+    <i class="bi bi-chat-dots"></i><span>{{ 'Inquiries' if current_user.role == 'seller' else 'Messages' }}</span>
+    {% if unread_inquiries > 0 %}<span class="fh-bottom-nav-badge">{{ unread_inquiries }}</span>{% endif %}
+  </a>
+  <a href="{{ url_for('my_orders') }}" class="fh-bottom-nav-item {% if request.endpoint == 'my_orders' %}active{% endif %}">
+    <i class="bi bi-bag-check"></i><span>Orders</span>
+  </a>
+  <a href="{{ url_for('profile', user_id=current_user.id) }}" class="fh-bottom-nav-item {% if request.endpoint == 'profile' %}active{% endif %}">
+    <i class="bi bi-person"></i><span>Profile</span>
+  </a>
+</nav>
+{% endif %}
+
 <button class="fh-chat-toggle" onclick="toggleChat()" id="chatToggle" title="Chat with AI Assistant">
   <i class="bi bi-robot" id="chatToggleIcon"></i>
 </button>
@@ -410,6 +435,21 @@ document.addEventListener('DOMContentLoaded',()=>{
     q.addEventListener('click',()=>{const item=q.parentElement;const isOpen=item.classList.contains('open');document.querySelectorAll('.fh-faq-item').forEach(i=>i.classList.remove('open'));if(!isOpen)item.classList.add('open');});
   });
 });
+
+// Scroll progress bar + back-to-top
+(function(){
+  const bar = document.getElementById('fh-scroll-bar');
+  const btn = document.getElementById('fh-back-top');
+  window.addEventListener('scroll', () => {
+    const scrolled = window.scrollY;
+    const total = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.width = (total > 0 ? (scrolled / total * 100) : 0) + '%';
+    if (btn) {
+      if (scrolled > 300) { btn.style.opacity='1'; btn.style.transform='translateY(0)'; }
+      else { btn.style.opacity='0'; btn.style.transform='translateY(12px)'; }
+    }
+  }, { passive: true });
+})();
 </script>
 </body>
 </html>
