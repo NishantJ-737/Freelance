@@ -229,7 +229,21 @@
 {% endblock %}
 
 {% block scripts %}
+{#
+  HERO ANIMATION — uncomment exactly ONE line below to switch designs:
+  v1: 3D Constellation Sphere  (rotating network of nodes on a sphere, mouse-steerable)
+  v2: Aurora Particle Field    (floating particles that connect when near, mouse repels)
+  v3: Cyber Grid               (perspective grid rushing toward the viewer)
+  v4: Orbital Rings            (glowing nodes on tilted ellipses with trail effects)
+  v5: Morphing Gradient Blobs  (large soft blobs that breathe and drift, mouse attracts)
+  v6: Layered Sine Waves       (flowing wave layers with highlight dots, mouse shifts phase)
+#}
 <script src="{{ url_for('static', filename='js/hero-network.js') }}" defer></script>
+{# <script src="{{ url_for('static', filename='js/hero-v2-particles.js') }}" defer></script> #}
+{# <script src="{{ url_for('static', filename='js/hero-v3-grid.js') }}" defer></script> #}
+{# <script src="{{ url_for('static', filename='js/hero-v4-orbits.js') }}" defer></script> #}
+{# <script src="{{ url_for('static', filename='js/hero-v5-blobs.js') }}" defer></script> #}
+{# <script src="{{ url_for('static', filename='js/hero-v6-waves.js') }}" defer></script> #}
 <script>
 let heroTimer;
 function heroAutocomplete(q) {
