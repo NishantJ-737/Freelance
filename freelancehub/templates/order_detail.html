@@ -61,6 +61,23 @@
           </div>
         </div>
 
+        <!-- Delivery Countdown -->
+        {% if order.status in ('active', 'revision_requested') %}
+        <div class="fh-panel" style="margin-bottom:20px;text-align:center;">
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px;letter-spacing:.5px;">Delivery Deadline</div>
+          <div id="countdownTimer" style="font-family:var(--font-display);font-size:1.8rem;font-weight:800;color:var(--ink);letter-spacing:2px;">--:--:--</div>
+          <div style="font-size:12px;color:var(--text-soft);margin-top:4px;" id="countdownLabel"></div>
+        </div>
+        {% endif %}
+
+        <!-- Revision notes banner -->
+        {% if order.status == 'revision_requested' and order.revision_notes %}
+        <div style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.4);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:20px;">
+          <div style="font-weight:700;color:#c17d0a;margin-bottom:4px;"><i class="bi bi-arrow-counterclockwise"></i> Revision Requested</div>
+          <p style="font-size:13px;color:var(--text-mid);margin:0;">{{ order.revision_notes }}</p>
+        </div>
+        {% endif %}
+
         <!-- Private Order Chat -->
         <div class="fh-panel" style="margin-bottom:20px;">
           <div class="fh-panel-title"><i class="bi bi-shield-lock me-2" style="color:var(--accent-3);"></i>Private Order Chat
@@ -158,10 +175,22 @@
                 <input type="hidden" name="status" value="completed" />
                 <button type="submit" class="btn-primary-fh btn-sm-fh" style="width:100%;justify-content:center;background:var(--accent-3);" onclick="return confirm('Mark as complete?')">✅ Approve Delivery</button>
               </form>
+              <button onclick="document.getElementById('revModal').style.display='flex'" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;">
+                <i class="bi bi-arrow-counterclockwise"></i> Request Revision
+              </button>
+              {% elif order.status == 'revision_requested' %}
+              <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                <input type="hidden" name="status" value="completed" />
+                <button type="submit" class="btn-primary-fh btn-sm-fh" style="width:100%;justify-content:center;background:var(--accent-3);" onclick="return confirm('Approve and mark complete?')">✅ Approve Delivery</button>
+              </form>
               {% elif order.status == 'completed' %}
               <a href="{{ url_for('service_detail', service_id=order.svc_id) }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;">⭐ Leave a Review</a>
               {% endif %}
             {% endif %}
+
+            <a href="{{ url_for('export_orders') }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;">
+              <i class="bi bi-download"></i> Export Orders CSV
+            </a>
 
             <a href="{{ url_for('my_orders') }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;">← Back to Orders</a>
           </div>
@@ -171,7 +200,66 @@
   </div>
 </div>
 <style>@media(max-width:768px){.order-grid{grid-template-columns:1fr !important;}}</style>
+
+<!-- Revision Request Modal -->
+{% if current_user and current_user.id == order.buyer_id and order.status == 'active' %}
+<div id="revModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div class="fh-panel" style="width:100%;max-width:480px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.1rem;color:var(--ink);">Request a Revision</h3>
+      <button onclick="document.getElementById('revModal').style.display='none'" style="background:none;border:none;font-size:22px;color:var(--text-soft);cursor:pointer;">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('request_revision', order_id=order.id) }}">
+      <label class="fh-label">What needs to be changed? *</label>
+      <textarea name="notes" class="fh-textarea" required rows="4"
+                placeholder="Describe exactly what you'd like revised..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button type="submit" class="btn-primary-fh" style="flex:1;">Send Revision Request</button>
+        <button type="button" onclick="document.getElementById('revModal').style.display='none'" class="btn-outline-fh">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
+
 {% block scripts %}
-<script>const mc=document.getElementById('orderChatMsgs');if(mc)mc.scrollTop=mc.scrollHeight;</script>
+<script>
+const mc = document.getElementById('orderChatMsgs');
+if (mc) mc.scrollTop = mc.scrollHeight;
+
+// Delivery countdown
+(function() {
+  const createdAt = "{{ order.updated_at or order.created_at }}";
+  const deliveryDays = {{ order.delivery_days if order.delivery_days is defined else 3 }};
+  const status = "{{ order.status }}";
+  if (!['active','revision_requested'].includes(status)) return;
+  const timerEl = document.getElementById('countdownTimer');
+  const labelEl = document.getElementById('countdownLabel');
+  if (!timerEl) return;
+  const start = new Date(createdAt.replace(' ','T') + 'Z');
+  const deadline = new Date(start.getTime() + deliveryDays * 86400000);
+  function tick() {
+    const now = new Date();
+    const diff = deadline - now;
+    if (diff <= 0) {
+      timerEl.textContent = 'Overdue';
+      timerEl.style.color = 'var(--accent-2)';
+      if (labelEl) labelEl.textContent = 'Delivery deadline has passed';
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    timerEl.textContent = d > 0
+      ? `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m`
+      : `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (labelEl) labelEl.textContent = `Due ${deadline.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+    timerEl.style.color = diff < 86400000 ? 'var(--accent-2)' : 'var(--ink)';
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
 {% endblock %}

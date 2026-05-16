@@ -61,6 +61,58 @@
           <p style="font-size:15px;color:var(--text-mid);line-height:1.75;white-space:pre-wrap;">{{ service.description }}</p>
         </div>
 
+        <!-- Service Packages -->
+        {% if packages %}
+        <div class="fh-panel" style="margin-bottom:24px;">
+          <div class="fh-panel-title">Packages</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:4px;">
+            {% for pkg in packages %}
+            <div class="fh-pkg-card" id="pkg-{{ loop.index0 }}" onclick="selectPackage({{ loop.index0 }}, {{ pkg.price }}, {{ pkg.delivery_days }})"
+                 style="border:2px solid var(--border);border-radius:var(--radius-md);padding:16px;cursor:pointer;transition:border-color .2s;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-soft);margin-bottom:4px;">{{ pkg.tier }}</div>
+              <div style="font-weight:800;font-size:15px;color:var(--ink);margin-bottom:4px;">{{ pkg.title }}</div>
+              <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;color:var(--accent);margin-bottom:6px;">{{ pkg.price | inr }}</div>
+              <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px;"><i class="bi bi-clock"></i> {{ pkg.delivery_days }} day{{ 's' if pkg.delivery_days != 1 }} delivery</div>
+              {% if pkg.description %}<p style="font-size:12px;color:var(--text-mid);line-height:1.5;margin:0;">{{ pkg.description }}</p>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          <input type="hidden" id="selectedPackage" value="" />
+          <div id="selectedPkgInfo" style="display:none;margin-top:12px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:13px;color:var(--ink);">
+            Selected: <strong id="selectedPkgName"></strong> — <span id="selectedPkgPrice"></span>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- FAQs -->
+        {% if faqs %}
+        <div class="fh-panel" style="margin-bottom:24px;">
+          <div class="fh-panel-title">Frequently Asked Questions</div>
+          <div style="margin-top:4px;">
+            {% for faq in faqs %}
+            <details style="border-bottom:1px solid var(--border);padding:14px 0;">
+              <summary style="font-weight:600;color:var(--ink);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+                {{ faq.question }}
+                <i class="bi bi-chevron-down" style="font-size:12px;color:var(--text-soft);flex-shrink:0;margin-left:8px;"></i>
+              </summary>
+              <p style="font-size:14px;color:var(--text-mid);line-height:1.65;margin-top:10px;padding-left:2px;">{{ faq.answer }}</p>
+            </details>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Custom Offer banner if buyer has a pending offer -->
+        {% if custom_offer and current_user and current_user.id != service.seller_id %}
+        <div style="background:linear-gradient(135deg,rgba(108,99,255,.12),rgba(67,217,173,.08));border:1px solid var(--accent);border-radius:var(--radius-md);padding:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-weight:700;color:var(--ink);"><i class="bi bi-tags-fill" style="color:var(--accent);"></i> You have a custom offer!</div>
+            <div style="font-size:13px;color:var(--text-soft);">{{ custom_offer.price | inr }} · {{ custom_offer.delivery_days }} day delivery</div>
+          </div>
+          <a href="{{ url_for('inquiry_detail', inquiry_id=existing_inquiry.id) }}" class="btn-primary-fh" style="flex-shrink:0;">View Offer</a>
+        </div>
+        {% endif %}
+
         <!-- Pre-Purchase Inquiry / Chat -->
         {% if current_user and current_user.id != service.seller_id %}
         <div class="fh-inquiry-box" style="margin-bottom:24px;">
@@ -203,6 +255,12 @@
           <a href="{{ url_for('edit_service', service_id=service.id) }}" class="btn-outline-fh" style="width:100%;justify-content:center;margin-top:8px;">
             <i class="bi bi-pencil"></i> Edit Service
           </a>
+          <a href="{{ url_for('manage_faqs', service_id=service.id) }}" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;margin-top:8px;">
+            <i class="bi bi-question-circle"></i> Manage FAQs
+          </a>
+          <button onclick="document.getElementById('pkgModal').style.display='flex'" class="btn-outline-fh btn-sm-fh" style="width:100%;justify-content:center;margin-top:8px;">
+            <i class="bi bi-layers"></i> Manage Packages
+          </button>
           {% endif %}
         </div>
 
@@ -220,6 +278,10 @@
             </a>
             <div>
               <a href="{{ url_for('profile', user_id=service.seller_id) }}" style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);text-decoration:none;">{{ service.seller_name }}</a>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                <i class="bi {{ seller_level[1] }}" style="color:{{ seller_level[2] }};font-size:12px;"></i>
+                <span style="font-size:11px;color:{{ seller_level[2] }};font-weight:600;">{{ seller_level[0] }}</span>
+              </div>
               <div style="font-size:12px;color:var(--text-soft);">{{ seller_order_count }} orders completed</div>
             </div>
           </div>
@@ -254,10 +316,71 @@
 </style>
 {% endblock %}
 
+<!-- Packages Modal (seller only) -->
+{% if current_user and current_user.id == service.seller_id %}
+<div id="pkgModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div class="fh-panel" style="width:100%;max-width:620px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.2rem;color:var(--ink);">Manage Packages</h3>
+      <button onclick="document.getElementById('pkgModal').style.display='none'" style="background:none;border:none;font-size:22px;color:var(--text-soft);cursor:pointer;">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('save_packages', service_id=service.id) }}">
+      {% for tier, label, color in [('basic','Basic','#43d9ad'),('standard','Standard','#6c63ff'),('premium','Premium','#f5a623')] %}
+      {% set _match = packages | selectattr('tier', 'equalto', tier) | list if packages else [] %}
+      {% set pkg = _match[0] if _match else none %}
+      <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin-bottom:14px;">
+        <div style="font-weight:700;color:{{ color }};margin-bottom:12px;text-transform:uppercase;font-size:12px;">{{ label }} Tier</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <label class="fh-label">Title</label>
+            <input type="text" name="{{ tier }}_title" class="fh-input" value="{{ pkg.title if pkg else '' }}" placeholder="e.g. Starter Logo" />
+          </div>
+          <div>
+            <label class="fh-label">Price (Rs.)</label>
+            <input type="number" name="{{ tier }}_price" class="fh-input" value="{{ pkg.price if pkg else '' }}" min="1" placeholder="e.g. 2000" />
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
+          <div>
+            <label class="fh-label">Delivery (days)</label>
+            <input type="number" name="{{ tier }}_delivery" class="fh-input" value="{{ pkg.delivery_days if pkg else 3 }}" min="1" max="60" />
+          </div>
+          <div>
+            <label class="fh-label">What's included</label>
+            <input type="text" name="{{ tier }}_description" class="fh-input" value="{{ pkg.description if pkg else '' }}" placeholder="Brief description" />
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      <button type="submit" class="btn-primary-fh" style="width:100%;">Save Packages</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 {% block scripts %}
 <script>
-// Scroll inquiry messages to bottom
 const iq = document.getElementById('inquiryMsgs');
 if (iq) iq.scrollTop = iq.scrollHeight;
+
+const pkgs = {{ packages | tojson }};
+function selectPackage(idx, price, days) {
+  document.querySelectorAll('.fh-pkg-card').forEach((el,i) => {
+    el.style.borderColor = i === idx ? 'var(--accent)' : 'var(--border)';
+    el.style.background  = i === idx ? 'rgba(108,99,255,.07)' : '';
+  });
+  const info = document.getElementById('selectedPkgInfo');
+  const orderBtn = document.querySelector('a[href*="checkout"]');
+  if (info) {
+    info.style.display = 'block';
+    document.getElementById('selectedPkgName').textContent = pkgs[idx]?.title || '';
+    document.getElementById('selectedPkgPrice').textContent = '₹' + price.toLocaleString('en-IN');
+  }
+  if (orderBtn) {
+    const url = new URL(orderBtn.href, location.origin);
+    url.searchParams.set('package', idx);
+    orderBtn.href = url.toString();
+  }
+}
 </script>
 {% endblock %}

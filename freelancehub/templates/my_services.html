@@ -18,6 +18,20 @@
 <div class="section-pad-sm">
   <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
 
+    <!-- Seller Level Badge -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:14px 18px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-md);">
+      <i class="bi {{ seller_level[1] }}" style="font-size:1.6rem;color:{{ seller_level[2] }};"></i>
+      <div>
+        <div style="font-weight:700;color:var(--ink);">{{ seller_level[0] }}</div>
+        <div style="font-size:12px;color:var(--text-soft);">
+          {% if seller_level[0] == 'New Seller' %}Complete 5 orders with 4.0+ rating to reach Rising Talent
+          {% elif seller_level[0] == 'Rising Talent' %}Complete 20 orders with 4.5+ rating to reach Top Seller
+          {% elif seller_level[0] == 'Top Seller' %}Complete 50 orders with 4.8+ rating to reach Elite Pro
+          {% else %}You've reached the highest seller tier! 🎉{% endif %}
+        </div>
+      </div>
+    </div>
+
     <!-- Stats Row -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
       {% for icon, bg, label, value in [
@@ -37,6 +51,29 @@
       </div>
       {% endfor %}
     </div>
+
+    <!-- Monthly Earnings Chart -->
+    {% if monthly_earnings %}
+    <div class="fh-panel" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="fh-panel-title" style="margin:0;">Revenue (Last 6 Months)</div>
+        <a href="{{ url_for('export_orders') }}" class="btn-outline-fh btn-sm-fh"><i class="bi bi-download"></i> Export CSV</a>
+      </div>
+      {% set max_rev = monthly_earnings | map(attribute='revenue') | max %}
+      <div style="display:flex;align-items:flex-end;gap:8px;height:120px;">
+        {% for m in monthly_earnings %}
+        {% set bar_h = ((m.revenue / max_rev * 100) | int) if max_rev > 0 else 5 %}
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+          <div style="font-size:10px;color:var(--text-soft);white-space:nowrap;">{{ m.revenue | inr }}</div>
+          <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
+            <div style="width:100%;height:{{ [bar_h,5] | max }}%;background:linear-gradient(180deg,var(--accent),rgba(108,99,255,.4));border-radius:4px 4px 0 0;min-height:4px;" title="{{ m.revenue | inr }} · {{ m.orders }} order{{ 's' if m.orders != 1 }}"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-soft);white-space:nowrap;">{{ m.month[5:] }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
     {% if services %}
     <div style="display:flex;flex-direction:column;gap:14px;">

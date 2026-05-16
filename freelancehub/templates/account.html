@@ -69,6 +69,37 @@
           </form>
         </div>
 
+        <!-- Availability (sellers only) -->
+        {% if user.role == 'seller' %}
+        <div class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title"><i class="bi bi-calendar-check me-2" style="color:var(--accent-3);"></i>Availability</div>
+          <form method="POST" action="{{ url_for('account') }}" style="display:flex;flex-direction:column;gap:16px;">
+            <input type="hidden" name="action" value="availability" />
+            <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface-2);border-radius:var(--radius-md);">
+              <label style="position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;">
+                <input type="checkbox" name="is_available" id="availToggle" {{ 'checked' if user.is_available != 0 else '' }}
+                       style="opacity:0;width:0;height:0;" onchange="this.closest('form').submit()">
+                <span onclick="document.getElementById('availToggle').click()"
+                      style="position:absolute;cursor:pointer;inset:0;background:{{ 'var(--accent-3)' if user.is_available != 0 else 'var(--border)' }};border-radius:26px;transition:.3s;">
+                  <span style="position:absolute;content:'';height:20px;width:20px;left:{{ '22px' if user.is_available != 0 else '3px' }};bottom:3px;background:white;border-radius:50%;transition:.3s;display:block;"></span>
+                </span>
+              </label>
+              <div>
+                <div style="font-weight:600;color:var(--ink);">{{ 'Available for work' if user.is_available != 0 else 'Currently unavailable' }}</div>
+                <div style="font-size:12px;color:var(--text-soft);">Shown on your profile and service cards</div>
+              </div>
+            </div>
+            {% if user.is_available == 0 %}
+            <div>
+              <label class="fh-label">Available from (optional)</label>
+              <input type="date" name="available_from" class="fh-input" value="{{ user.available_from or '' }}" />
+            </div>
+            <button type="submit" class="btn-outline-fh btn-sm-fh" style="align-self:flex-start;">Save</button>
+            {% endif %}
+          </form>
+        </div>
+        {% endif %}
+
         <!-- Password -->
         <div id="password" class="fh-panel" style="margin-bottom:20px;">
           <div class="fh-panel-title"><i class="bi bi-lock me-2" style="color:var(--accent);"></i>Change Password</div>

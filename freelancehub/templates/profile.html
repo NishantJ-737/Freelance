@@ -7,8 +7,16 @@
       <div class="fh-profile-avatar">{{ profile_user.name[0]|upper }}</div>
       <div>
         <div class="fh-profile-name">{{ profile_user.name }}</div>
-        <div class="fh-profile-role" style="color:{{ 'var(--gold)' if profile_user.role == 'seller' else 'var(--accent-3)' }};">
-          {{ '⭐ Top Seller' if profile_user.role == 'seller' else '🛍️ Buyer' }}
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="fh-profile-role" style="color:{{ 'var(--gold)' if profile_user.role == 'seller' else 'var(--accent-3)' }};">
+            {{ '⭐ Seller' if profile_user.role == 'seller' else '🛍️ Buyer' }}
+          </div>
+          {% if seller_level is defined and profile_user.role == 'seller' %}
+          <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);border-radius:20px;padding:3px 10px;">
+            <i class="bi {{ seller_level[1] }}" style="color:{{ seller_level[2] }};font-size:12px;"></i>
+            <span style="font-size:11px;font-weight:600;color:{{ seller_level[2] }};">{{ seller_level[0] }}</span>
+          </div>
+          {% endif %}
         </div>
         {% if profile_user.location %}
         <div style="color:rgba(255,255,255,.5);font-size:13px;margin-top:4px;"><i class="bi bi-geo-alt me-1"></i>{{ profile_user.location }}</div>

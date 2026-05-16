@@ -63,6 +63,7 @@
       {% if current_user and current_user.role == 'seller' %}
       <li><a href="{{ url_for('post_service') }}"><i class="bi bi-plus-circle"></i> Post</a></li>
       {% endif %}
+      <li><a href="{{ url_for('buyer_requests') }}"><i class="bi bi-clipboard-plus"></i> Requests</a></li>
       <li><a href="{{ url_for('help_center') }}"><i class="bi bi-life-preserver"></i> Help</a></li>
     </ul>
 

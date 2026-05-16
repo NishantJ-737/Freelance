@@ -76,6 +76,74 @@
     </div>
   </div>
 </div>
+
+<!-- Custom Offers -->
+{% if custom_offers %}
+<div class="section-pad-sm">
+  <div class="container" style="max-width:980px;margin:0 auto;padding:0 20px;">
+    <div class="fh-panel-title" style="margin-bottom:12px;"><i class="bi bi-tags-fill" style="color:var(--accent);"></i> Custom Offers</div>
+    {% for offer in custom_offers %}
+    <div class="fh-panel" style="margin-bottom:12px;border-left:3px solid
+      {% if offer.status == 'pending' %}var(--accent)
+      {% elif offer.status == 'accepted' %}#43d9ad
+      {% else %}var(--border){% endif %};">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-weight:700;font-size:1.1rem;color:var(--ink);">{{ offer.price | inr }}
+            <span style="font-size:13px;font-weight:400;color:var(--text-soft);margin-left:8px;"><i class="bi bi-clock"></i> {{ offer.delivery_days }} day{{ 's' if offer.delivery_days != 1 }} delivery</span>
+          </div>
+          {% if offer.description %}<p style="font-size:14px;color:var(--text-mid);margin-top:6px;">{{ offer.description }}</p>{% endif %}
+          <span style="font-size:12px;color:var(--text-soft);">{{ offer.created_at | time_ago }} ·
+            <strong>{{ 'Pending' if offer.status == 'pending' else offer.status | title }}</strong>
+          </span>
+        </div>
+        {% if current_user and current_user.id == inquiry.buyer_id and offer.status == 'pending' %}
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <form method="POST" action="{{ url_for('accept_custom_offer', offer_id=offer.id) }}" style="margin:0;">
+            <button type="submit" class="btn-primary-fh" style="height:36px;padding:0 16px;font-size:13px;">Accept & Order</button>
+          </form>
+          <form method="POST" action="{{ url_for('decline_custom_offer', offer_id=offer.id) }}" style="margin:0;">
+            <button type="submit" class="btn-outline-fh" style="height:36px;padding:0 14px;font-size:13px;">Decline</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Send Custom Offer (Seller only) -->
+{% if current_user and current_user.id == inquiry.seller_id and inquiry.status == 'open' %}
+<div style="padding-bottom:40px;">
+  <div class="container" style="max-width:980px;margin:0 auto;padding:0 20px;">
+    <details class="fh-panel" style="cursor:pointer;">
+      <summary style="font-weight:700;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px;padding:4px 0;">
+        <i class="bi bi-tags-fill" style="color:var(--accent);"></i> Send a Custom Offer
+        <i class="bi bi-chevron-down" style="margin-left:auto;font-size:12px;color:var(--text-soft);"></i>
+      </summary>
+      <form method="POST" action="{{ url_for('send_custom_offer', inquiry_id=inquiry.id) }}" style="margin-top:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div>
+            <label class="fh-label">Price (Rs.) *</label>
+            <input type="number" name="price" class="fh-input" required min="1" placeholder="e.g. 5000" />
+          </div>
+          <div>
+            <label class="fh-label">Delivery (days)</label>
+            <input type="number" name="delivery_days" class="fh-input" value="3" min="1" max="60" />
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="fh-label">What's included</label>
+          <textarea name="description" class="fh-textarea" placeholder="Describe what you'll deliver for this price..." rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn-primary-fh">Send Custom Offer</button>
+      </form>
+    </details>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

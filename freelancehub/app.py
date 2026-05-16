@@ -64,25 +64,23 @@ def get_db():
 
 def ensure_columns(db):
     """Lightweight schema migrations for existing SQLite files."""
-    # users: soft-delete
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN is_deleted INTEGER DEFAULT 0")
-    except Exception:
-        pass
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN deleted_at TEXT")
-    except Exception:
-        pass
-
-    # inquiries: seller can delete/hide thread
-    try:
-        db.execute("ALTER TABLE inquiries ADD COLUMN seller_deleted INTEGER DEFAULT 0")
-    except Exception:
-        pass
-    try:
-        db.execute("ALTER TABLE inquiries ADD COLUMN deleted_at TEXT")
-    except Exception:
-        pass
+    migrations = [
+        "ALTER TABLE users ADD COLUMN is_deleted INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN deleted_at TEXT",
+        "ALTER TABLE users ADD COLUMN is_available INTEGER DEFAULT 1",
+        "ALTER TABLE users ADD COLUMN available_from TEXT",
+        "ALTER TABLE inquiries ADD COLUMN seller_deleted INTEGER DEFAULT 0",
+        "ALTER TABLE inquiries ADD COLUMN deleted_at TEXT",
+        "ALTER TABLE orders ADD COLUMN revision_notes TEXT",
+        "ALTER TABLE orders ADD COLUMN revision_requested_at TEXT",
+        "ALTER TABLE orders ADD COLUMN package_id INTEGER",
+        "ALTER TABLE services ADD COLUMN packages TEXT",
+    ]
+    for sql in migrations:
+        try:
+            db.execute(sql)
+        except Exception:
+            pass
 
 def init_db():
     with get_db() as db:
@@ -203,6 +201,53 @@ def init_db():
                 service_id INTEGER NOT NULL,
                 created_at TEXT DEFAULT (datetime('now')),
                 UNIQUE(user_id, service_id)
+            );
+            CREATE TABLE IF NOT EXISTS service_faqs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_id INTEGER NOT NULL,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS custom_offers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                inquiry_id INTEGER NOT NULL,
+                seller_id INTEGER NOT NULL,
+                buyer_id INTEGER NOT NULL,
+                service_id INTEGER NOT NULL,
+                price INTEGER NOT NULL,
+                delivery_days INTEGER NOT NULL,
+                description TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (inquiry_id) REFERENCES inquiries(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id),
+                FOREIGN KEY (buyer_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS buyer_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                budget INTEGER DEFAULT 0,
+                category_id INTEGER,
+                buyer_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'open',
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (category_id) REFERENCES categories(id),
+                FOREIGN KEY (buyer_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS proposals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                request_id INTEGER NOT NULL,
+                seller_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                delivery_days INTEGER NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (request_id) REFERENCES buyer_requests(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id)
             );
         """)
         ensure_columns(db)
@@ -479,6 +524,18 @@ def seed_data(db):
 def notify(db, user_id, title, body, link=None):
     db.execute("INSERT INTO notifications (user_id, title, body, link) VALUES (?, ?, ?, ?)", (user_id, title, body, link))
 
+def get_seller_level(completed_orders, avg_rating):
+    """Return (label, icon, color) based on seller stats."""
+    r = float(avg_rating or 0)
+    c = int(completed_orders or 0)
+    if c >= 50 and r >= 4.8:
+        return ("Elite Pro", "bi-patch-check-fill", "#f5a623")
+    if c >= 20 and r >= 4.5:
+        return ("Top Seller", "bi-award-fill", "#6c63ff")
+    if c >= 5 and r >= 4.0:
+        return ("Rising Talent", "bi-graph-up-arrow", "#43d9ad")
+    return ("New Seller", "bi-person-circle", "#888")
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -612,6 +669,7 @@ def index():
         categories = db.execute("SELECT c.*, COUNT(s.id) as service_count FROM categories c LEFT JOIN services s ON s.category_id = c.id GROUP BY c.id").fetchall()
         trending = db.execute("""
             SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
+                   COALESCE(u.is_available,1) as is_available,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -619,6 +677,7 @@ def index():
         """).fetchall()
         featured = db.execute("""
             SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
+                   COALESCE(u.is_available,1) as is_available,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -640,6 +699,7 @@ def browse():
     page = max(1, request.args.get("page", type=int, default=1))
     per_page = 12
     base_query = """SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
+               COALESCE(u.is_available,1) as is_available,
                COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
         FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
         LEFT JOIN reviews r ON r.service_id = s.id WHERE s.is_approved=1"""
@@ -682,6 +742,7 @@ def service_detail(service_id):
         db.execute("UPDATE services SET view_count = view_count + 1 WHERE id = ?", (service_id,))
         related = db.execute("""
             SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
+                   COALESCE(u.is_available,1) as is_available,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -709,11 +770,23 @@ def service_detail(service_id):
                     WHERE m.inquiry_id=? ORDER BY m.created_at ASC
                 """, (existing_inquiry["id"],)).fetchall()
         seller_order_count = db.execute("SELECT COUNT(*) FROM orders WHERE seller_id=? AND status='completed'", (service["seller_id"],)).fetchone()[0]
+        seller_avg_rating = db.execute("SELECT COALESCE(AVG(r.rating),0) FROM reviews r JOIN services s ON r.service_id=s.id WHERE s.seller_id=?", (service["seller_id"],)).fetchone()[0]
+        seller_level = get_seller_level(seller_order_count, seller_avg_rating)
+        faqs = db.execute("SELECT * FROM service_faqs WHERE service_id=? ORDER BY sort_order, id", (service_id,)).fetchall()
+        packages = json.loads(service["packages"]) if service.get("packages") else []
+        custom_offer = None
+        if "user_id" in session and existing_inquiry:
+            custom_offer = db.execute(
+                "SELECT * FROM custom_offers WHERE inquiry_id=? AND status='pending' ORDER BY id DESC LIMIT 1",
+                (existing_inquiry["id"],)
+            ).fetchone()
     tags = json.loads(service["tags"]) if service["tags"] else []
     return render_template("service_detail.html", service=service, related=related, tags=tags,
                            reviews=reviews, user_review=user_review, can_review=can_review,
                            seller_order_count=seller_order_count, existing_inquiry=existing_inquiry,
-                           inquiry_messages=inquiry_messages, is_saved=is_saved)
+                           inquiry_messages=inquiry_messages, is_saved=is_saved,
+                           seller_level=seller_level, faqs=faqs, packages=packages,
+                           custom_offer=custom_offer)
 
 @app.route("/services/<int:service_id>/review", methods=["POST"])
 @login_required
@@ -842,13 +915,15 @@ def inquiries():
 def inquiry_detail(inquiry_id):
     with get_db() as db:
         inquiry = db.execute("""
-            SELECT i.*, s.title as service_title, s.id as service_id, s.image_url as service_image,
+            SELECT i.id, i.service_id, i.buyer_id, i.seller_id, i.status,
+                   i.created_at, COALESCE(i.seller_deleted,0) as seller_deleted,
+                   s.title as service_title, s.image_url as service_image,
                    b.name as buyer_name, b.email as buyer_email, COALESCE(b.is_deleted,0) as buyer_deleted,
                    sl.name as seller_name, sl.email as seller_email
             FROM inquiries i
-            JOIN services s ON i.service_id=s.id
-            JOIN users b ON i.buyer_id=b.id
-            JOIN users sl ON i.seller_id=sl.id
+            LEFT JOIN services s ON i.service_id=s.id
+            LEFT JOIN users b ON i.buyer_id=b.id
+            LEFT JOIN users sl ON i.seller_id=sl.id
             WHERE i.id=?
         """, (inquiry_id,)).fetchone()
         if not inquiry:
@@ -885,7 +960,12 @@ def inquiry_detail(inquiry_id):
             elif not has_order and last_dt and (datetime.utcnow() - last_dt).days >= 3:
                 allow_delete = True
 
-    return render_template("inquiry_detail.html", inquiry=inquiry, messages=messages, allow_delete=allow_delete)
+        custom_offers_list = db.execute(
+            "SELECT * FROM custom_offers WHERE inquiry_id=? ORDER BY id DESC LIMIT 3",
+            (inquiry_id,)
+        ).fetchall()
+    return render_template("inquiry_detail.html", inquiry=inquiry, messages=messages,
+                           allow_delete=allow_delete, custom_offers=custom_offers_list)
 
 @app.route("/inquiries/<int:inquiry_id>/message", methods=["POST"])
 @login_required
@@ -992,6 +1072,7 @@ def saved_services():
     with get_db() as db:
         services = db.execute("""
             SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+                   COALESCE(u.is_available,1) as is_available,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM saved_services sv JOIN services s ON sv.service_id=s.id
             JOIN categories c ON s.category_id=c.id JOIN users u ON s.seller_id=u.id
@@ -1108,14 +1189,26 @@ def my_services():
         total_earnings = db.execute("SELECT COALESCE(SUM(total_price),0) FROM orders WHERE seller_id=? AND status='completed'", (session["user_id"],)).fetchone()[0]
         pending_orders = db.execute("SELECT COUNT(*) FROM orders WHERE seller_id=? AND status='pending'", (session["user_id"],)).fetchone()[0]
         active_orders = db.execute("SELECT COUNT(*) FROM orders WHERE seller_id=? AND status='active'", (session["user_id"],)).fetchone()[0]
+        monthly_earnings = db.execute("""
+            SELECT strftime('%Y-%m', created_at) as month, COALESCE(SUM(total_price),0) as revenue, COUNT(*) as orders
+            FROM orders WHERE seller_id=? AND status='completed'
+            GROUP BY month ORDER BY month DESC LIMIT 6
+        """, (session["user_id"],)).fetchall()
+        monthly_earnings = list(reversed(monthly_earnings))
+        seller_level = get_seller_level(
+            db.execute("SELECT COUNT(*) FROM orders WHERE seller_id=? AND status='completed'", (session["user_id"],)).fetchone()[0],
+            db.execute("SELECT COALESCE(AVG(r.rating),0) FROM reviews r JOIN services s ON r.service_id=s.id WHERE s.seller_id=?", (session["user_id"],)).fetchone()[0]
+        )
     return render_template("my_services.html", services=services, total_views=total_views,
-                           total_earnings=total_earnings, pending_orders=pending_orders, active_orders=active_orders)
+                           total_earnings=total_earnings, pending_orders=pending_orders, active_orders=active_orders,
+                           monthly_earnings=monthly_earnings, seller_level=seller_level)
 
 @app.route("/trending")
 def trending():
     with get_db() as db:
         services = db.execute("""
             SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
+                   COALESCE(u.is_available,1) as is_available,
                    COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -1126,24 +1219,37 @@ def trending():
 @app.route("/recommendations")
 def recommendations():
     category = request.args.get("category", "")
+    uid = session.get("user_id")
     with get_db() as db:
-        if category:
-            services = db.execute("""
-                SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
-                       COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
-                FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
-                LEFT JOIN reviews r ON r.service_id = s.id
-                WHERE c.slug = ? AND s.is_approved=1 GROUP BY s.id ORDER BY s.view_count DESC LIMIT 12
-            """, (category,)).fetchall()
-        else:
-            services = db.execute("""
-                SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
-                       COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
-                FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
-                LEFT JOIN reviews r ON r.service_id = s.id
-                WHERE s.is_approved=1 GROUP BY s.id ORDER BY RANDOM() LIMIT 12
-            """).fetchall()
         categories = db.execute("SELECT * FROM categories").fetchall()
+        base = """SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name, u.avatar_url as seller_avatar,
+                       COALESCE(u.is_available,1) as is_available,
+                       COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
+                FROM services s JOIN categories c ON s.category_id=c.id JOIN users u ON s.seller_id=u.id
+                LEFT JOIN reviews r ON r.service_id=s.id WHERE s.is_approved=1"""
+        if category:
+            services = db.execute(base + " AND c.slug=? GROUP BY s.id ORDER BY s.view_count DESC LIMIT 12", (category,)).fetchall()
+        elif uid:
+            # Collaborative: find categories the user has ordered/saved, then surface top-rated in those
+            user_cats = db.execute("""
+                SELECT DISTINCT s.category_id FROM orders o JOIN services s ON o.service_id=s.id WHERE o.buyer_id=?
+                UNION
+                SELECT DISTINCT s.category_id FROM saved_services sv JOIN services s ON sv.service_id=s.id WHERE sv.user_id=?
+            """, (uid, uid)).fetchall()
+            cat_ids = [r[0] for r in user_cats]
+            if cat_ids:
+                placeholders = ",".join("?" * len(cat_ids))
+                services = db.execute(
+                    base + f" AND s.category_id IN ({placeholders}) AND s.seller_id!=?"
+                    " GROUP BY s.id ORDER BY avg_rating DESC, s.view_count DESC LIMIT 12",
+                    cat_ids + [uid]
+                ).fetchall()
+                if not services:
+                    services = db.execute(base + " GROUP BY s.id ORDER BY avg_rating DESC, s.view_count DESC LIMIT 12").fetchall()
+            else:
+                services = db.execute(base + " GROUP BY s.id ORDER BY avg_rating DESC, s.view_count DESC LIMIT 12").fetchall()
+        else:
+            services = db.execute(base + " GROUP BY s.id ORDER BY avg_rating DESC, s.view_count DESC LIMIT 12").fetchall()
     return render_template("recommendations.html", services=services, categories=categories, selected=category)
 
 @app.route("/services/<int:service_id>/checkout")
@@ -1211,10 +1317,13 @@ def my_orders():
 def order_detail(order_id):
     with get_db() as db:
         order = db.execute("""
-            SELECT o.*, s.title as service_title, s.description as service_desc, s.id as svc_id, s.image_url,
-                   buyer.name as buyer_name, seller.name as seller_name, seller.email as seller_email, buyer.email as buyer_email
+            SELECT o.*, s.title as service_title, s.description as service_desc,
+                   s.id as svc_id, s.image_url, s.delivery_days,
+                   buyer.name as buyer_name, seller.name as seller_name,
+                   seller.email as seller_email, buyer.email as buyer_email
             FROM orders o JOIN services s ON o.service_id=s.id
-            JOIN users buyer ON o.buyer_id=buyer.id JOIN users seller ON o.seller_id=seller.id WHERE o.id=?
+            JOIN users buyer ON o.buyer_id=buyer.id
+            JOIN users seller ON o.seller_id=seller.id WHERE o.id=?
         """, (order_id,)).fetchone()
         if not order:
             flash("Order not found.", "danger")
@@ -1239,11 +1348,12 @@ def update_order_status(order_id):
         uid = session["user_id"]; role = session.get("role"); allowed = False
         if role == "seller" and uid == order["seller_id"]:
             if new_status == "active" and order["status"] == "pending": allowed = True
-            elif new_status == "completed" and order["status"] == "active": allowed = True
+            elif new_status == "completed" and order["status"] in ("active", "revision_requested"): allowed = True
             elif new_status == "cancelled" and order["status"] == "pending": allowed = True
         if uid == order["buyer_id"]:
             if new_status == "cancelled" and order["status"] == "pending": allowed = True
-            elif new_status == "completed" and order["status"] == "active": allowed = True
+            elif new_status == "completed" and order["status"] in ("active", "revision_requested"): allowed = True
+            elif new_status == "revision_requested" and order["status"] == "active": allowed = True
         if not allowed:
             flash("You cannot perform this action.", "warning")
             return redirect(url_for("order_detail", order_id=order_id))
@@ -1502,6 +1612,7 @@ def profile(user_id):
             flash("User not found.", "danger")
             return redirect(url_for("index"))
         services = db.execute("""SELECT s.*, c.name as category_name, c.slug as category_slug, u.name as seller_name,
+               COALESCE(u.is_available,1) as is_available,
                COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count
             FROM services s JOIN categories c ON s.category_id = c.id JOIN users u ON s.seller_id = u.id
             LEFT JOIN reviews r ON r.service_id = s.id
@@ -1512,9 +1623,11 @@ def profile(user_id):
         recent_reviews = db.execute("""SELECT rv.*, u.name as reviewer_name, s.title as service_title
             FROM reviews rv JOIN users u ON rv.reviewer_id = u.id JOIN services s ON rv.service_id = s.id
             WHERE s.seller_id=? ORDER BY rv.created_at DESC LIMIT 6""", (user_id,)).fetchall()
+    seller_level = get_seller_level(completed_orders, avg_rating)
     return render_template("profile.html", profile_user=user, services=services,
                            completed_orders=completed_orders, avg_rating=avg_rating,
-                           review_count=review_count, recent_reviews=recent_reviews)
+                           review_count=review_count, recent_reviews=recent_reviews,
+                           seller_level=seller_level)
 
 @app.route("/account", methods=["GET","POST"])
 @login_required
@@ -1533,6 +1646,11 @@ def account():
                 db.execute("UPDATE users SET name=?, bio=?, location=?, website=? WHERE id=?", (name, bio, location, website, session["user_id"]))
                 session["name"] = name
                 flash("Profile updated!", "success")
+            elif action == "availability":
+                is_available = 1 if request.form.get("is_available") else 0
+                available_from = request.form.get("available_from","").strip() or None
+                db.execute("UPDATE users SET is_available=?, available_from=? WHERE id=?", (is_available, available_from, session["user_id"]))
+                flash("Availability updated!", "success")
             elif action == "password":
                 current_pw = request.form.get("current_password","")
                 new_pw = request.form.get("new_password","")
@@ -1550,6 +1668,284 @@ def account():
     with get_db() as db:
         user = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
     return render_template("account.html", user=user)
+
+# ── Service FAQs ────────────────────────────────────────────────────────────
+@app.route("/services/<int:service_id>/faqs", methods=["GET", "POST"])
+@seller_required
+def manage_faqs(service_id):
+    with get_db() as db:
+        svc = db.execute("SELECT id, title FROM services WHERE id=? AND seller_id=?", (service_id, session["user_id"])).fetchone()
+        if not svc:
+            flash("Service not found.", "danger")
+            return redirect(url_for("my_services"))
+        if request.method == "POST":
+            db.execute("DELETE FROM service_faqs WHERE service_id=?", (service_id,))
+            questions = request.form.getlist("question")
+            answers = request.form.getlist("answer")
+            for i, (q, a) in enumerate(zip(questions, answers)):
+                q, a = q.strip(), a.strip()
+                if q and a:
+                    db.execute("INSERT INTO service_faqs (service_id, question, answer, sort_order) VALUES (?,?,?,?)", (service_id, q, a, i))
+            flash("FAQs saved!", "success")
+            return redirect(url_for("service_detail", service_id=service_id))
+        faqs = db.execute("SELECT * FROM service_faqs WHERE service_id=? ORDER BY sort_order", (service_id,)).fetchall()
+    return render_template("manage_faqs.html", service=svc, faqs=faqs)
+
+# ── Service Packages ─────────────────────────────────────────────────────────
+@app.route("/services/<int:service_id>/packages", methods=["POST"])
+@seller_required
+def save_packages(service_id):
+    with get_db() as db:
+        svc = db.execute("SELECT id FROM services WHERE id=? AND seller_id=?", (service_id, session["user_id"])).fetchone()
+        if not svc:
+            flash("Service not found.", "danger")
+            return redirect(url_for("my_services"))
+        tiers = ["basic", "standard", "premium"]
+        pkgs = []
+        for tier in tiers:
+            title = request.form.get(f"{tier}_title", "").strip()
+            price = request.form.get(f"{tier}_price", type=int, default=0)
+            delivery = request.form.get(f"{tier}_delivery", type=int, default=3)
+            description = request.form.get(f"{tier}_description", "").strip()
+            if title and price:
+                pkgs.append({"tier": tier, "title": title, "price": price, "delivery_days": delivery, "description": description})
+        db.execute("UPDATE services SET packages=? WHERE id=?", (json.dumps(pkgs) if pkgs else None, service_id))
+    flash("Packages saved!", "success")
+    return redirect(url_for("service_detail", service_id=service_id))
+
+# ── Custom Offers ─────────────────────────────────────────────────────────────
+@app.route("/inquiries/<int:inquiry_id>/offer", methods=["POST"])
+@login_required
+def send_custom_offer(inquiry_id):
+    price = request.form.get("price", type=int)
+    delivery_days = request.form.get("delivery_days", type=int, default=3)
+    description = request.form.get("description", "").strip()
+    if not price or price < 1:
+        flash("Please enter a valid price.", "danger")
+        return redirect(url_for("inquiry_detail", inquiry_id=inquiry_id))
+    with get_db() as db:
+        inquiry = db.execute("SELECT * FROM inquiries WHERE id=?", (inquiry_id,)).fetchone()
+        if not inquiry or session["user_id"] != inquiry["seller_id"]:
+            flash("Access denied.", "danger")
+            return redirect(url_for("inquiries"))
+        db.execute("UPDATE custom_offers SET status='superseded' WHERE inquiry_id=? AND status='pending'", (inquiry_id,))
+        db.execute("""INSERT INTO custom_offers (inquiry_id, seller_id, buyer_id, service_id, price, delivery_days, description)
+                      VALUES (?,?,?,?,?,?,?)""",
+                   (inquiry_id, inquiry["seller_id"], inquiry["buyer_id"], inquiry["service_id"], price, delivery_days, description))
+        offer_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        svc = db.execute("SELECT title FROM services WHERE id=?", (inquiry["service_id"],)).fetchone()
+        notify(db, inquiry["buyer_id"], "Custom Offer Received!",
+               f"{session['name']} sent a custom offer for Rs.{price:,} for \"{svc['title'] if svc else 'service'}\".",
+               url_for("inquiry_detail", inquiry_id=inquiry_id))
+    flash("Custom offer sent!", "success")
+    return redirect(url_for("inquiry_detail", inquiry_id=inquiry_id))
+
+@app.route("/custom-offers/<int:offer_id>/accept", methods=["POST"])
+@login_required
+def accept_custom_offer(offer_id):
+    with get_db() as db:
+        offer = db.execute("SELECT * FROM custom_offers WHERE id=?", (offer_id,)).fetchone()
+        if not offer or offer["buyer_id"] != session["user_id"] or offer["status"] != "pending":
+            flash("Offer not found or expired.", "danger")
+            return redirect(url_for("inquiries"))
+        db.execute("UPDATE custom_offers SET status='accepted' WHERE id=?", (offer_id,))
+        payment_ref = f"PAY{random.randint(100000000, 999999999)}"
+        db.execute("""INSERT INTO orders (service_id, buyer_id, seller_id, status, payment_method, payment_ref, total_price, notes)
+                      VALUES (?,?,?,'pending','custom_offer',?,?,?)""",
+                   (offer["service_id"], offer["buyer_id"], offer["seller_id"], payment_ref, offer["price"],
+                    offer["description"] or "Custom offer order"))
+        order_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        db.execute("UPDATE inquiries SET status='closed' WHERE id=?", (offer["inquiry_id"],))
+        svc = db.execute("SELECT title FROM services WHERE id=?", (offer["service_id"],)).fetchone()
+        title = svc["title"] if svc else "service"
+        notify(db, offer["seller_id"], "Custom Offer Accepted!", f"{session['name']} accepted your offer for \"{title}\".", url_for("order_detail", order_id=order_id))
+        notify(db, session["user_id"], "Order Placed!", f"Order for \"{title}\". Ref: {payment_ref}", url_for("order_detail", order_id=order_id))
+    flash(f"Offer accepted! Order placed. Ref: {payment_ref}", "success")
+    return redirect(url_for("order_detail", order_id=order_id))
+
+@app.route("/custom-offers/<int:offer_id>/decline", methods=["POST"])
+@login_required
+def decline_custom_offer(offer_id):
+    with get_db() as db:
+        offer = db.execute("SELECT * FROM custom_offers WHERE id=?", (offer_id,)).fetchone()
+        if not offer or offer["buyer_id"] != session["user_id"]:
+            flash("Offer not found.", "danger")
+            return redirect(url_for("inquiries"))
+        db.execute("UPDATE custom_offers SET status='declined' WHERE id=?", (offer_id,))
+        notify(db, offer["seller_id"], "Custom Offer Declined", f"{session['name']} declined your custom offer.", url_for("inquiry_detail", inquiry_id=offer["inquiry_id"]))
+    flash("Offer declined.", "info")
+    return redirect(url_for("inquiry_detail", inquiry_id=offer["inquiry_id"]))
+
+# ── Revision Request ──────────────────────────────────────────────────────────
+@app.route("/orders/<int:order_id>/request-revision", methods=["POST"])
+@login_required
+def request_revision(order_id):
+    notes = request.form.get("notes", "").strip()
+    with get_db() as db:
+        order = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+        if not order or order["buyer_id"] != session["user_id"] or order["status"] != "active":
+            flash("Cannot request revision at this stage.", "warning")
+            return redirect(url_for("order_detail", order_id=order_id))
+        db.execute("UPDATE orders SET status='revision_requested', revision_notes=?, revision_requested_at=datetime('now'), updated_at=datetime('now') WHERE id=?",
+                   (notes, order_id))
+        svc = db.execute("SELECT title FROM services WHERE id=?", (order["service_id"],)).fetchone()
+        notify(db, order["seller_id"], "Revision Requested",
+               f"{session['name']} requested a revision on \"{svc['title'] if svc else 'your service'}\": {notes[:60]}",
+               url_for("order_detail", order_id=order_id))
+    flash("Revision requested. The seller has been notified.", "info")
+    return redirect(url_for("order_detail", order_id=order_id))
+
+# ── Export Orders CSV ─────────────────────────────────────────────────────────
+@app.route("/orders/export")
+@login_required
+def export_orders():
+    import csv, io
+    with get_db() as db:
+        if session.get("role") == "seller":
+            rows = db.execute("""SELECT o.id, s.title, o.total_price, o.status, o.payment_method, o.payment_ref, u.name as buyer_name, o.created_at
+                FROM orders o JOIN services s ON o.service_id=s.id JOIN users u ON o.buyer_id=u.id
+                WHERE o.seller_id=? ORDER BY o.created_at DESC""", (session["user_id"],)).fetchall()
+            headers = ["Order ID", "Service", "Amount (Rs.)", "Status", "Payment", "Ref", "Buyer", "Date"]
+        else:
+            rows = db.execute("""SELECT o.id, s.title, o.total_price, o.status, o.payment_method, o.payment_ref, u.name as seller_name, o.created_at
+                FROM orders o JOIN services s ON o.service_id=s.id JOIN users u ON o.seller_id=u.id
+                WHERE o.buyer_id=? ORDER BY o.created_at DESC""", (session["user_id"],)).fetchall()
+            headers = ["Order ID", "Service", "Amount (Rs.)", "Status", "Payment", "Ref", "Seller", "Date"]
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+    for r in rows:
+        writer.writerow([r[0], r[1], r[2] / 100 if r[2] else 0, r[3], r[4], r[5], r[6], r[7]])
+    from flask import make_response
+    resp = make_response(output.getvalue())
+    resp.headers["Content-Type"] = "text/csv"
+    resp.headers["Content-Disposition"] = "attachment; filename=orders.csv"
+    return resp
+
+# ── Buyer Request Board ───────────────────────────────────────────────────────
+@app.route("/buyer-requests", methods=["GET", "POST"])
+@login_required
+def buyer_requests():
+    with get_db() as db:
+        categories = db.execute("SELECT * FROM categories ORDER BY name").fetchall()
+        if request.method == "POST":
+            if session.get("role") != "buyer":
+                flash("Only buyers can post requests.", "warning")
+                return redirect(url_for("buyer_requests"))
+            title = request.form.get("title", "").strip()
+            description = request.form.get("description", "").strip()
+            budget = request.form.get("budget", type=int, default=0)
+            category_id = request.form.get("category_id", type=int)
+            if not title or len(title) < 5:
+                flash("Title must be at least 5 characters.", "danger")
+            elif not description or len(description) < 20:
+                flash("Description must be at least 20 characters.", "danger")
+            else:
+                db.execute("INSERT INTO buyer_requests (title, description, budget, category_id, buyer_id) VALUES (?,?,?,?,?)",
+                           (title, description, budget or 0, category_id, session["user_id"]))
+                flash("Request posted! Sellers will submit proposals.", "success")
+                return redirect(url_for("buyer_requests"))
+        requests_list = db.execute("""
+            SELECT br.*, u.name as buyer_name, c.name as category_name,
+                   COUNT(p.id) as proposal_count
+            FROM buyer_requests br JOIN users u ON br.buyer_id=u.id
+            LEFT JOIN categories c ON br.category_id=c.id
+            LEFT JOIN proposals p ON p.request_id=br.id
+            WHERE br.status='open' GROUP BY br.id ORDER BY br.created_at DESC LIMIT 30
+        """).fetchall()
+    return render_template("buyer_requests.html", requests=requests_list, categories=categories)
+
+@app.route("/buyer-requests/<int:req_id>", methods=["GET", "POST"])
+@login_required
+def buyer_request_detail(req_id):
+    with get_db() as db:
+        req = db.execute("""SELECT br.*, u.name as buyer_name, c.name as category_name
+            FROM buyer_requests br JOIN users u ON br.buyer_id=u.id
+            LEFT JOIN categories c ON br.category_id=c.id WHERE br.id=?""", (req_id,)).fetchone()
+        if not req:
+            flash("Request not found.", "danger")
+            return redirect(url_for("buyer_requests"))
+        if request.method == "POST":
+            if session.get("role") != "seller":
+                flash("Only sellers can submit proposals.", "warning")
+                return redirect(url_for("buyer_request_detail", req_id=req_id))
+            if req["status"] != "open":
+                flash("This request is closed.", "warning")
+                return redirect(url_for("buyer_request_detail", req_id=req_id))
+            existing = db.execute("SELECT id FROM proposals WHERE request_id=? AND seller_id=?", (req_id, session["user_id"])).fetchone()
+            if existing:
+                flash("You already submitted a proposal.", "warning")
+                return redirect(url_for("buyer_request_detail", req_id=req_id))
+            msg = request.form.get("message","").strip()
+            price = request.form.get("price", type=int)
+            delivery = request.form.get("delivery_days", type=int, default=3)
+            if not msg or not price:
+                flash("Message and price are required.", "danger")
+            else:
+                db.execute("INSERT INTO proposals (request_id, seller_id, message, price, delivery_days) VALUES (?,?,?,?,?)",
+                           (req_id, session["user_id"], msg, price, delivery))
+                notify(db, req["buyer_id"], "New Proposal!", f"{session['name']} sent a proposal for your request \"{req['title']}\".",
+                       url_for("buyer_request_detail", req_id=req_id))
+                flash("Proposal submitted!", "success")
+                return redirect(url_for("buyer_request_detail", req_id=req_id))
+        proposals_list = db.execute("""SELECT p.*, u.name as seller_name, u.avatar_url as seller_avatar,
+            (SELECT COUNT(*) FROM orders WHERE seller_id=p.seller_id AND status='completed') as completed_orders
+            FROM proposals p JOIN users u ON p.seller_id=u.id WHERE p.request_id=? ORDER BY p.created_at""", (req_id,)).fetchall()
+        already_proposed = bool(db.execute("SELECT id FROM proposals WHERE request_id=? AND seller_id=?", (req_id, session["user_id"])).fetchone()) if session.get("role") == "seller" else False
+    return render_template("request_detail.html", req=req, proposals=proposals_list, already_proposed=already_proposed)
+
+@app.route("/buyer-requests/<int:req_id>/proposals/<int:prop_id>/accept", methods=["POST"])
+@login_required
+def accept_proposal(req_id, prop_id):
+    with get_db() as db:
+        req = db.execute("SELECT * FROM buyer_requests WHERE id=? AND buyer_id=?", (req_id, session["user_id"])).fetchone()
+        if not req:
+            flash("Access denied.", "danger")
+            return redirect(url_for("buyer_requests"))
+        prop = db.execute("SELECT * FROM proposals WHERE id=? AND request_id=?", (prop_id, req_id)).fetchone()
+        if not prop:
+            flash("Proposal not found.", "danger")
+            return redirect(url_for("buyer_request_detail", req_id=req_id))
+        db.execute("UPDATE buyer_requests SET status='closed' WHERE id=?", (req_id,))
+        db.execute("UPDATE proposals SET status='accepted' WHERE id=?", (prop_id,))
+        db.execute("UPDATE proposals SET status='declined' WHERE request_id=? AND id!=?", (req_id, prop_id))
+        notify(db, prop["seller_id"], "Proposal Accepted!", f"{session['name']} accepted your proposal for \"{req['title']}\".",
+               url_for("buyer_request_detail", req_id=req_id))
+    flash("Proposal accepted! Contact the seller to proceed.", "success")
+    return redirect(url_for("buyer_request_detail", req_id=req_id))
+
+@app.route("/buyer-requests/<int:req_id>/close", methods=["POST"])
+@login_required
+def close_buyer_request(req_id):
+    with get_db() as db:
+        req = db.execute("SELECT * FROM buyer_requests WHERE id=? AND buyer_id=?", (req_id, session["user_id"])).fetchone()
+        if req:
+            db.execute("UPDATE buyer_requests SET status='closed' WHERE id=?", (req_id,))
+            flash("Request closed.", "info")
+    return redirect(url_for("buyer_requests"))
+
+# ── Service Comparison API ────────────────────────────────────────────────────
+@app.route("/api/compare")
+def api_compare():
+    ids_raw = request.args.get("ids", "")
+    try:
+        ids = [int(x) for x in ids_raw.split(",") if x.strip()][:3]
+    except ValueError:
+        return jsonify([])
+    if not ids:
+        return jsonify([])
+    with get_db() as db:
+        placeholders = ",".join("?" * len(ids))
+        rows = db.execute(f"""
+            SELECT s.id, s.title, s.price, s.delivery_days,
+                   COALESCE(AVG(r.rating),0) as avg_rating, COUNT(DISTINCT r.id) as review_count,
+                   c.name as category_name, u.name as seller_name,
+                   (SELECT COUNT(*) FROM orders WHERE seller_id=s.seller_id AND status='completed') as completed_orders
+            FROM services s JOIN categories c ON s.category_id=c.id JOIN users u ON s.seller_id=u.id
+            LEFT JOIN reviews r ON r.service_id=s.id
+            WHERE s.id IN ({placeholders}) GROUP BY s.id
+        """, ids).fetchall()
+    return jsonify([dict(r) for r in rows])
 
 @app.template_filter("inr")
 def inr_format(value):

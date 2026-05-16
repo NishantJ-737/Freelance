@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ req.title }} — FreelanceHub{% endblock %}
+{% block content %}
+<div class="fh-page-banner" style="padding:28px 0;">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;position:relative;z-index:1;">
+    <a href="{{ url_for('buyer_requests') }}" style="color:rgba(255,255,255,.5);font-size:13px;text-decoration:none;">← Buyer Requests</a>
+    <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:800;color:white;margin-top:8px;">{{ req.title }}</h1>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:rgba(255,255,255,.5);">
+      <span><i class="bi bi-person"></i> {{ req.buyer_name }}</span>
+      {% if req.category_name %}<span><i class="bi bi-tag"></i> {{ req.category_name }}</span>{% endif %}
+      {% if req.budget %}<span><i class="bi bi-currency-rupee"></i> Budget: Rs.{{ "{:,}".format(req.budget) }}</span>{% endif %}
+      <span><i class="bi bi-clock"></i> {{ req.created_at | time_ago }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-pad">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:0 20px;">
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start;" class="order-grid">
+
+      <!-- LEFT: description + proposals -->
+      <div>
+        <div class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title">Request Details</div>
+          <p style="font-size:15px;color:var(--text-mid);line-height:1.75;white-space:pre-wrap;">{{ req.description }}</p>
+        </div>
+
+        <div class="fh-panel-title" style="margin-bottom:12px;">{{ proposals|length }} Proposal{{ 's' if proposals|length != 1 }}</div>
+        {% if proposals %}
+        {% for p in proposals %}
+        <div class="fh-panel" style="margin-bottom:14px;">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            {% if p.seller_avatar %}
+            <img src="{{ p.seller_avatar }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
+            {% else %}
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">{{ p.seller_name[0]|upper }}</div>
+            {% endif %}
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;color:var(--ink);">{{ p.seller_name }}
+                {% if p.status == 'accepted' %}<span style="color:#43d9ad;font-size:12px;margin-left:6px;"><i class="bi bi-check-circle-fill"></i> Accepted</span>{% endif %}
+              </div>
+              <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px;">{{ p.completed_orders }} orders completed · {{ p.created_at | time_ago }}</div>
+              <p style="font-size:14px;color:var(--text-mid);line-height:1.6;margin-bottom:10px;">{{ p.message }}</p>
+              <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+                <span style="font-weight:700;color:var(--ink);font-size:16px;">{{ p.price | inr }}</span>
+                <span style="font-size:13px;color:var(--text-soft);"><i class="bi bi-clock"></i> {{ p.delivery_days }} day{{ 's' if p.delivery_days != 1 }}</span>
+                {% if current_user and current_user.id == req.buyer_id and req.status == 'open' and p.status == 'pending' %}
+                <form method="POST" action="{{ url_for('accept_proposal', req_id=req.id, prop_id=p.id) }}" style="margin:0;">
+                  <button type="submit" class="btn-primary-fh" style="height:34px;padding:0 14px;font-size:13px;"
+                          onclick="return confirm('Accept this proposal and close the request?')">
+                    Accept Proposal
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="fh-empty-state" style="padding:30px 0;">
+          <div class="fh-empty-icon">💼</div>
+          <div class="fh-empty-title">No proposals yet</div>
+          <div class="fh-empty-sub">Sellers will submit proposals soon</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- RIGHT: submit proposal or close request -->
+      <div>
+        {% if current_user and current_user.role == 'seller' and req.status == 'open' %}
+        {% if already_proposed %}
+        <div class="fh-panel" style="text-align:center;padding:24px;">
+          <i class="bi bi-check-circle-fill" style="font-size:2rem;color:#43d9ad;"></i>
+          <div style="font-weight:700;color:var(--ink);margin-top:8px;">Proposal Submitted</div>
+          <div style="font-size:13px;color:var(--text-soft);margin-top:4px;">Waiting for buyer to review</div>
+        </div>
+        {% else %}
+        <div class="fh-panel">
+          <div class="fh-panel-title">Submit a Proposal</div>
+          <form method="POST">
+            <div style="margin-bottom:12px;">
+              <label class="fh-label">Your message *</label>
+              <textarea name="message" class="fh-textarea" required placeholder="Describe how you'll deliver this..." rows="4"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div>
+                <label class="fh-label">Price (Rs.) *</label>
+                <input type="number" name="price" class="fh-input" required min="1" />
+              </div>
+              <div>
+                <label class="fh-label">Delivery (days)</label>
+                <input type="number" name="delivery_days" class="fh-input" value="3" min="1" max="60" />
+              </div>
+            </div>
+            <button type="submit" class="btn-primary-fh" style="width:100%;">Submit Proposal</button>
+          </form>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if current_user and current_user.id == req.buyer_id and req.status == 'open' %}
+        <div class="fh-panel" style="margin-top:14px;text-align:center;">
+          <form method="POST" action="{{ url_for('close_buyer_request', req_id=req.id) }}">
+            <button type="submit" class="btn-outline-fh" style="width:100%;"
+                    onclick="return confirm('Close this request? No more proposals will be accepted.')">
+              <i class="bi bi-x-circle"></i> Close Request
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+        <div class="fh-panel" style="margin-top:14px;">
+          <div style="font-size:13px;color:var(--text-soft);line-height:1.6;">
+            <i class="bi bi-shield-check" style="color:var(--accent);"></i>
+            <strong style="color:var(--ink);">How it works</strong><br/>
+            Sellers submit proposals. The buyer reviews and accepts the best one. Then proceed to order directly with the seller.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
