@@ -3,6 +3,7 @@
  * Columns of falling glyphs (mix of Latin, Devanagari, and symbols).
  * Glyphs cycle randomly; leading glyph is bright white, trail fades.
  * Mouse column lights up in accent colour.
+ * Glyphs dim near centre text area and brighten toward edges.
  */
 (function () {
   'use strict';
@@ -16,20 +17,19 @@
   let mouseCol = -1;
 
   const FONT_SIZE = 14;
-  // Mix of Devanagari, katakana-style symbols, and digits
   const CHARS =
     'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह' +
     '०१२३४५६७८९' +
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*<>[]{}';
 
   const PALETTE_LEAD  = '255,255,255';
-  const PALETTE_MAIN  = '67,217,173';   // teal
-  const PALETTE_MOUSE = '108,99,255';   // purple for mouse column
+  const PALETTE_MAIN  = '67,217,173';
+  const PALETTE_MOUSE = '108,99,255';
 
   let cols = 0;
-  let drops = []; // y position (in rows) for each column
+  let drops = [];
   let speeds = [];
-  let glyphs = []; // current glyph per column
+  let glyphs = [];
 
   function resize() {
     const r = hero.getBoundingClientRect();
@@ -51,8 +51,17 @@
     return CHARS[Math.floor(Math.random() * CHARS.length)];
   }
 
+  // 0–1 multiplier: near-zero at text centre, full brightness at edges
+  function edgeFade(x, y) {
+    const dx = x - W * 0.5;
+    const dy = y - H * 0.44;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const innerR = Math.min(W, H) * 0.22;
+    const outerR = Math.min(W, H) * 0.50;
+    return Math.min(1, Math.max(0.05, (dist - innerR) / (outerR - innerR)));
+  }
+
   function frame() {
-    // Fade trail
     ctx.fillStyle = 'rgba(10,10,20,0.10)';
     ctx.fillRect(0, 0, W, H);
 
@@ -65,20 +74,20 @@
       const isMouse = i === mouseCol;
       const col = isMouse ? PALETTE_MOUSE : PALETTE_MAIN;
 
-      // Leading glyph — bright
-      ctx.fillStyle = `rgba(${PALETTE_LEAD},0.95)`;
+      const fade = edgeFade(x, y);
+
+      // Leading glyph — bright white, dimmed near centre
+      ctx.fillStyle = `rgba(${PALETTE_LEAD},${(0.95 * fade).toFixed(3)})`;
       ctx.fillText(glyphs[i], x, y);
 
-      // One glyph behind — accent colour bright
-      ctx.fillStyle = `rgba(${col},0.75)`;
+      // One glyph behind — accent colour
+      ctx.fillStyle = `rgba(${col},${(0.75 * fade).toFixed(3)})`;
       ctx.fillText(randChar(), x, y - FONT_SIZE);
 
-      // Randomly mutate glyph
       if (Math.random() < 0.06) glyphs[i] = randChar();
 
       drops[i] += speeds[i];
 
-      // Reset column when it scrolls past bottom
       if (drops[i] * FONT_SIZE > H + FONT_SIZE * 2 && Math.random() < 0.015) {
         drops[i] = -Math.random() * 20;
         speeds[i] = Math.random() * 0.6 + 0.3;
@@ -93,6 +102,7 @@
     mouseCol = Math.floor((e.clientX - r.left) / FONT_SIZE);
   }, { passive: true });
   hero.addEventListener('mouseleave', () => { mouseCol = -1; });
+  hero.addEventListener('selectstart', e => { e.preventDefault(); });
   window.addEventListener('resize', resize, { passive: true });
 
   resize();
