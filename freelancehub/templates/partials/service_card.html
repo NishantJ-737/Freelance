@@ -39,6 +39,9 @@
       {% else %}
       <span class="fh-review-count">New service</span>
       {% endif %}
+      {% if s.delivery_days %}
+      <span style="margin-left:auto;font-size:10px;color:var(--text-soft);white-space:nowrap;display:flex;align-items:center;gap:3px;"><i class="bi bi-clock" style="font-size:10px;"></i>{{ s.delivery_days }}d</span>
+      {% endif %}
     </div>
     <div class="fh-service-footer">
       <div class="fh-service-price">

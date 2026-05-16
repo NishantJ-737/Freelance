@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ service.title }} — FreelanceHub{% endblock %}
 
+{% block head %}
+<meta property="og:title" content="{{ service.title }} — FreelanceHub" />
+<meta property="og:description" content="{{ service.description | truncate(160) }}" />
+<meta property="og:image" content="{{ service.image_url or '' }}" />
+<meta property="og:type" content="product" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ service.title }}" />
+<meta name="twitter:description" content="{{ service.description | truncate(160) }}" />
+{% if service.image_url %}<meta name="twitter:image" content="{{ service.image_url }}" />{% endif %}
+{% endblock %}
+
 {% block content %}
 <div style="background:var(--surface-2);padding:12px 0;border-bottom:1px solid var(--border);">
   <div class="container" style="max-width:1280px;margin:0 auto;padding:0 20px;">
@@ -183,7 +194,21 @@
                 <div class="fh-stars" style="margin-left:auto;">{{ rv.rating | stars }}</div>
               </div>
               {% if rv.comment %}
-              <p style="font-size:14px;color:var(--text-mid);line-height:1.65;margin:0;">{{ rv.comment }}</p>
+              <p style="font-size:14px;color:var(--text-mid);line-height:1.65;margin:0 0 10px;">{{ rv.comment }}</p>
+              {% endif %}
+              {% if rv.seller_reply %}
+              <div style="margin-left:20px;padding:10px 14px;background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+                <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px;">Seller's Response · {{ rv.seller_replied_at | time_ago }}</div>
+                <p style="font-size:13px;color:var(--text-mid);line-height:1.6;margin:0;">{{ rv.seller_reply }}</p>
+              </div>
+              {% elif current_user and current_user.id == service.seller_user_id and not rv.seller_reply %}
+              <details style="margin-left:20px;margin-top:6px;">
+                <summary style="font-size:12px;color:var(--accent);cursor:pointer;list-style:none;font-weight:600;">↩ Reply to this review</summary>
+                <form method="POST" action="{{ url_for('reply_review', review_id=rv.id) }}" style="margin-top:8px;display:flex;gap:8px;">
+                  <input type="text" name="reply" class="fh-input" placeholder="Write a professional response..." required style="flex:1;height:38px;font-size:13px;" />
+                  <button type="submit" class="btn-primary-fh btn-sm-fh">Post</button>
+                </form>
+              </details>
               {% endif %}
             </div>
             {% endfor %}

@@ -1361,7 +1361,7 @@ section, .fh-hero, .fh-trust-section,
 }
 .fh-compare-drawer.open { transform: translateY(0); }
 @media (max-width: 768px) {
-  .fh-compare-drawer { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0)); }
+  .fh-compare-drawer { bottom: 60px; padding-bottom: 12px; }
 }
 .fh-compare-drawer-inner {
   max-width: 1280px; margin: 0 auto;

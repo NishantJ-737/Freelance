@@ -100,6 +100,12 @@
               <div class="name">{{ current_user.name }}</div>
               <div class="email">{{ current_user.email }}</div>
               <span class="role-tag">{{ current_user.role }}</span>
+              {% if current_user.role == 'seller' %}
+              <button id="avail-toggle-btn" onclick="toggleAvailability(this)" style="margin-top:8px;width:100%;border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s;background:none;">
+                <span id="avail-dot" style="width:7px;height:7px;border-radius:50%;background:var(--accent-3);display:inline-block;flex-shrink:0;"></span>
+                <span id="avail-label">Available</span>
+              </button>
+              {% endif %}
             </div>
             <a href="{{ url_for('profile', user_id=current_user.id) }}" class="fh-dropdown-item"><i class="bi bi-person"></i> View Profile</a>
             <a href="{{ url_for('account') }}" class="fh-dropdown-item"><i class="bi bi-gear"></i> Account Settings</a>
@@ -435,6 +441,30 @@ document.addEventListener('DOMContentLoaded',()=>{
     q.addEventListener('click',()=>{const item=q.parentElement;const isOpen=item.classList.contains('open');document.querySelectorAll('.fh-faq-item').forEach(i=>i.classList.remove('open'));if(!isOpen)item.classList.add('open');});
   });
 });
+
+// Auto-dismiss flash messages after 4s
+document.querySelectorAll('.fh-alert').forEach(el => {
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateY(-8px)'; setTimeout(()=>el.remove(),300); }, 4000);
+});
+
+// Availability toggle
+async function toggleAvailability(btn) {
+  btn.disabled = true;
+  try {
+    const r = await fetch('/toggle_availability', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const d = await r.json();
+    const dot = document.getElementById('avail-dot');
+    const label = document.getElementById('avail-label');
+    if (d.is_available) {
+      dot.style.background = 'var(--accent-3)'; label.textContent = 'Available';
+      btn.style.color = 'var(--accent-3)'; btn.style.borderColor = 'var(--accent-3)';
+    } else {
+      dot.style.background = 'var(--accent-2)'; label.textContent = 'Set as Busy';
+      btn.style.color = 'var(--accent-2)'; btn.style.borderColor = 'var(--accent-2)';
+    }
+  } catch(e) {}
+  btn.disabled = false;
+}
 
 // Scroll progress bar + back-to-top
 (function(){

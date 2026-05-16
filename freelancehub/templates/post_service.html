@@ -102,3 +102,77 @@
 </div>
 <style>@media(max-width:768px){.post-grid{grid-template-columns:1fr !important;}}</style>
 {% endblock %}
+{% block scripts %}
+<script>
+// Inline validation helpers
+function fieldOk(el) { el.style.borderColor = 'var(--accent-3)'; }
+function fieldErr(el) { el.style.borderColor = 'var(--accent-2)'; }
+function fieldReset(el) { el.style.borderColor = ''; }
+
+const titleEl = document.getElementById('title');
+const descEl = document.getElementById('description');
+const priceEl = document.getElementById('price');
+
+titleEl.addEventListener('input', function() {
+  const len = this.value.trim().length;
+  if (!len) { fieldReset(this); return; }
+  len >= 10 ? fieldOk(this) : fieldErr(this);
+});
+
+descEl.addEventListener('input', function() {
+  const len = this.value.trim().length;
+  if (!len) { fieldReset(this); return; }
+  len >= 50 ? fieldOk(this) : fieldErr(this);
+});
+
+priceEl.addEventListener('input', function() {
+  const val = parseInt(this.value);
+  if (!this.value) { fieldReset(this); return; }
+  val >= 100 ? fieldOk(this) : fieldErr(this);
+  const hint = document.getElementById('price-suggestion');
+  if (val >= 100) {
+    const low = val < 1000, high = val > 100000;
+    if (low) { hint.innerHTML = '⚡ Tip: Services under Rs.1,000 often undersell your skills. Consider pricing higher.'; hint.style.display='flex'; }
+    else if (high) { hint.innerHTML = '💡 Premium pricing — make sure your description justifies this rate.'; hint.style.display='flex'; }
+    else { hint.style.display='none'; }
+  } else { hint.style.display='none'; }
+});
+
+// Tag preview
+document.getElementById('tags').addEventListener('input', function() {
+  const tags = this.value.split(',').map(t=>t.trim()).filter(Boolean).slice(0,5);
+  document.getElementById('tag-preview').innerHTML = tags.map(t=>`<span style="font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(108,99,255,.1);color:var(--accent);border:1px solid rgba(108,99,255,.25);">${t}</span>`).join('');
+});
+
+// Image URL preview
+document.getElementById('image_url').addEventListener('input', function() {
+  const img = document.getElementById('img-preview');
+  if (this.value) { img.src = this.value; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
+});
+document.getElementById('image_file').addEventListener('change', function() {
+  if (this.files[0]) {
+    const img = document.getElementById('img-preview');
+    img.src = URL.createObjectURL(this.files[0]); img.style.display = 'block';
+  }
+});
+
+// Submit guard
+document.querySelector('form').addEventListener('submit', function(e) {
+  const title = titleEl.value.trim();
+  const desc = descEl.value.trim();
+  const price = parseInt(priceEl.value);
+  const cat = document.getElementById('category_id').value;
+  let err = '';
+  if (title.length < 10) err = 'Title must be at least 10 characters.';
+  else if (desc.length < 50) err = 'Description must be at least 50 characters.';
+  else if (!price || price < 1) err = 'Enter a valid price.';
+  else if (!cat) err = 'Please select a category.';
+  if (err) {
+    e.preventDefault();
+    const flash = document.querySelector('.fh-flash-container') || (() => { const d=document.createElement('div'); d.className='fh-flash-container'; document.body.prepend(d); return d; })();
+    flash.innerHTML = `<div class="fh-alert fh-alert-danger"><i class="bi bi-exclamation-circle"></i><span>${err}</span><button class="fh-alert-close" onclick="this.parentElement.remove()">&times;</button></div>`;
+  }
+});
+</script>
+{% endblock %}

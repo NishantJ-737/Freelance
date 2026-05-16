@@ -20,19 +20,21 @@
   <div class="fh-auth-form-side">
     <div class="fh-auth-title">Create your account</div>
     <p class="fh-auth-sub">Join FreelanceHub — it's completely free</p>
-    <form method="POST" action="{{ url_for('signup') }}" style="display:flex;flex-direction:column;gap:16px;">
+    <form method="POST" action="{{ url_for('signup') }}" style="display:flex;flex-direction:column;gap:16px;" id="signupForm" novalidate>
       <div>
         <label class="fh-form-label">Full Name</label>
-        <input type="text" name="name" class="fh-input" placeholder="Your full name" required autocomplete="name" />
+        <input type="text" name="name" id="signupName" class="fh-input" placeholder="Your full name" required autocomplete="name" oninput="validateName(this)" />
+        <div id="name-hint" style="font-size:11px;margin-top:4px;display:none;"></div>
       </div>
       <div>
         <label class="fh-form-label">Email Address</label>
-        <input type="email" name="email" class="fh-input" placeholder="you@example.com" required autocomplete="email" />
+        <input type="email" name="email" id="signupEmail" class="fh-input" placeholder="you@example.com" required autocomplete="email" oninput="validateEmail(this)" />
+        <div id="email-hint" style="font-size:11px;margin-top:4px;display:none;"></div>
       </div>
       <div>
         <label class="fh-form-label">Password</label>
         <div style="position:relative;">
-          <input type="password" name="password" id="signupPw" class="fh-input" placeholder="Min. 6 characters" required autocomplete="new-password" />
+          <input type="password" name="password" id="signupPw" class="fh-input" placeholder="Min. 6 characters" required autocomplete="new-password" oninput="checkStrength(this.value)" />
           <button type="button" onclick="togglePw('signupPw',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:16px;"><i class="bi bi-eye"></i></button>
         </div>
         <div style="height:4px;background:var(--border);border-radius:99px;margin-top:8px;overflow:hidden;"><div id="strength-bar" style="height:100%;width:0;border-radius:99px;transition:all .3s;"></div></div>
@@ -66,5 +68,46 @@
 <script>
 function togglePw(id,btn){const inp=document.getElementById(id);const show=inp.type==='text';inp.type=show?'password':'text';btn.querySelector('i').className=show?'bi bi-eye':'bi bi-eye-slash';}
 function selectRole(role){document.querySelectorAll('.fh-role-card').forEach(c=>{c.classList.remove('selected');const r=c.querySelector('input');if(r)r.checked=false;});const sel=document.querySelector(`.fh-role-card input[value="${role}"]`);if(sel){sel.checked=true;sel.closest('.fh-role-card').classList.add('selected');}}
+
+function setHint(hintId, inputEl, msg, ok) {
+  const h = document.getElementById(hintId);
+  h.textContent = msg; h.style.display = msg ? 'block' : 'none';
+  h.style.color = ok ? 'var(--accent-3)' : 'var(--accent-2)';
+  inputEl.style.borderColor = msg ? (ok ? 'var(--accent-3)' : 'var(--accent-2)') : '';
+}
+function validateName(el) {
+  if (!el.value.trim()) return setHint('name-hint', el, '', false);
+  const ok = el.value.trim().length >= 2;
+  setHint('name-hint', el, ok ? '✓ Looks good' : 'Name must be at least 2 characters', ok);
+}
+function validateEmail(el) {
+  if (!el.value.trim()) return setHint('email-hint', el, '', false);
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim());
+  setHint('email-hint', el, ok ? '✓ Valid email' : 'Enter a valid email address', ok);
+}
+function checkStrength(pw) {
+  const bar = document.getElementById('strength-bar');
+  const label = document.getElementById('strength-label');
+  let score = 0;
+  if (pw.length >= 6) score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = [[0,'',''],[ 1,'20%','var(--accent-2)'],[2,'40%','#f5a623'],[3,'60%','#f5a623'],[4,'80%','var(--accent-3)'],[5,'100%','var(--accent-3)']];
+  const [,w,c] = levels[Math.min(score, 5)];
+  bar.style.width = w; bar.style.background = c;
+  const names = ['','Weak','Fair','Good','Strong','Very Strong'];
+  label.textContent = pw.length ? names[Math.min(score,5)] : '';
+  label.style.color = c;
+}
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+  const name = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const pw = document.getElementById('signupPw').value;
+  if (name.length < 2) { e.preventDefault(); validateName(document.getElementById('signupName')); document.getElementById('signupName').focus(); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); validateEmail(document.getElementById('signupEmail')); document.getElementById('signupEmail').focus(); return; }
+  if (pw.length < 6) { e.preventDefault(); document.getElementById('signupPw').focus(); return; }
+});
 </script>
 {% endblock %}

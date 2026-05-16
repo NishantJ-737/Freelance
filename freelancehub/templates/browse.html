@@ -85,6 +85,14 @@
              class="fh-sort-btn {{ 'active' if sort == val }}">{{ label }}</a>
           {% endfor %}
           <span style="margin-left:auto;font-size:13px;color:var(--text-soft);">{{ total }} results</span>
+          {% if current_user and (search or selected_category) %}
+          <form method="POST" action="{{ url_for('save_search') }}" style="margin:0;">
+            <input type="hidden" name="query" value="{{ search }}">
+            <input type="hidden" name="category" value="{{ selected_category }}">
+            <input type="hidden" name="label" value="{{ search or selected_category }}">
+            <button type="submit" class="btn-outline-fh btn-sm-fh" title="Save this search" style="padding:0 10px;font-size:12px;"><i class="bi bi-bell me-1"></i>Save Search</button>
+          </form>
+          {% endif %}
         </div>
 
         {% if services %}
@@ -93,30 +101,18 @@
           {% for s in services %}{% include "partials/service_card.html" %}{% endfor %}
         </div>
 
-        <!-- Pagination -->
+        <!-- Load More -->
         {% if total_pages > 1 %}
-        <div class="fh-pagination">
-          {% if page > 1 %}
-          <a href="{{ url_for('browse', search=search, category=selected_category, min_price=min_price, max_price=max_price, sort=sort, page=page-1) }}" class="fh-page-btn"><i class="bi bi-chevron-left"></i></a>
-          {% else %}
-          <span class="fh-page-btn disabled"><i class="bi bi-chevron-left"></i></span>
-          {% endif %}
-
-          {% for p in range(1, total_pages+1) %}
-            {% if p == page %}
-            <span class="fh-page-btn active">{{ p }}</span>
-            {% elif p == 1 or p == total_pages or (p >= page-2 and p <= page+2) %}
-            <a href="{{ url_for('browse', search=search, category=selected_category, min_price=min_price, max_price=max_price, sort=sort, page=p) }}" class="fh-page-btn">{{ p }}</a>
-            {% elif p == page-3 or p == page+3 %}
-            <span class="fh-page-btn disabled" style="border:none;background:none;">…</span>
-            {% endif %}
-          {% endfor %}
-
-          {% if page < total_pages %}
-          <a href="{{ url_for('browse', search=search, category=selected_category, min_price=min_price, max_price=max_price, sort=sort, page=page+1) }}" class="fh-page-btn"><i class="bi bi-chevron-right"></i></a>
-          {% else %}
-          <span class="fh-page-btn disabled"><i class="bi bi-chevron-right"></i></span>
-          {% endif %}
+        <div style="text-align:center;margin-top:8px;">
+          <button id="load-more-btn" class="btn-outline-fh" style="min-width:180px;"
+                  data-page="{{ page }}" data-total-pages="{{ total_pages }}"
+                  data-search="{{ search }}" data-category="{{ selected_category }}"
+                  data-min="{{ min_price }}" data-max="{{ max_price }}" data-sort="{{ sort }}"
+                  {% if page >= total_pages %}style="display:none;"{% endif %}
+                  onclick="loadMore(this)">
+            <i class="bi bi-arrow-down-circle me-1"></i>Load More <span style="color:var(--text-soft);font-size:12px;">· {{ total - services|length * page }} remaining</span>
+          </button>
+          <div id="load-more-spinner" style="display:none;margin-top:12px;"><span class="fh-skeleton" style="display:inline-block;width:120px;height:16px;border-radius:8px;"></span></div>
         </div>
         {% endif %}
 
@@ -167,6 +163,34 @@
 
 {% block scripts %}
 <script>
+// Load More
+async function loadMore(btn) {
+  const grid = document.querySelector('.fh-service-grid');
+  const spinner = document.getElementById('load-more-spinner');
+  const nextPage = parseInt(btn.dataset.page) + 1;
+  const totalPages = parseInt(btn.dataset.totalPages);
+  const params = new URLSearchParams({
+    search: btn.dataset.search, category: btn.dataset.category,
+    min_price: btn.dataset.min, max_price: btn.dataset.max,
+    sort: btn.dataset.sort, page: nextPage, xhr: '1'
+  });
+  btn.style.display = 'none'; spinner.style.display = 'block';
+  try {
+    const res = await fetch('/browse?' + params.toString());
+    const data = await res.json();
+    const tmp = document.createElement('div');
+    tmp.innerHTML = data.html;
+    tmp.querySelectorAll('.fh-service-card').forEach(c => {
+      c.style.opacity = '0'; c.style.transform = 'translateY(16px)';
+      grid.appendChild(c);
+      requestAnimationFrame(() => { c.style.transition = 'all .35s ease'; c.style.opacity = '1'; c.style.transform = 'translateY(0)'; });
+    });
+    btn.dataset.page = nextPage;
+    spinner.style.display = 'none';
+    if (data.has_more) btn.style.display = 'inline-flex';
+  } catch(e) { spinner.style.display = 'none'; btn.style.display = 'inline-flex'; }
+}
+
 let compareItems = [];
 const MAX_COMPARE = 3;
 

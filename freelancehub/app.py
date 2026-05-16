@@ -75,6 +75,8 @@ def ensure_columns(db):
         "ALTER TABLE orders ADD COLUMN revision_requested_at TEXT",
         "ALTER TABLE orders ADD COLUMN package_id INTEGER",
         "ALTER TABLE services ADD COLUMN packages TEXT",
+        "ALTER TABLE reviews ADD COLUMN seller_reply TEXT",
+        "ALTER TABLE reviews ADD COLUMN seller_replied_at TEXT",
     ]
     for sql in migrations:
         try:
@@ -248,6 +250,24 @@ def init_db():
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (request_id) REFERENCES buyer_requests(id),
                 FOREIGN KEY (seller_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS order_milestones (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                is_done INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                completed_at TEXT,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS saved_searches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                query TEXT,
+                category TEXT,
+                label TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
         """)
         ensure_columns(db)
@@ -721,6 +741,10 @@ def browse():
         services = db.execute(base_query + filters + f" GROUP BY s.id ORDER BY {order} LIMIT ? OFFSET ?", params + [per_page, (page - 1) * per_page]).fetchall()
         categories = db.execute("SELECT * FROM categories ORDER BY name").fetchall()
     total_pages = max(1, (total + per_page - 1) // per_page)
+    if request.args.get("xhr") == "1":
+        from flask import render_template as rt
+        cards_html = rt("partials/service_cards_xhr.html", services=services)
+        return jsonify({"html": cards_html, "has_more": page < total_pages, "next_page": page + 1})
     return render_template("browse.html", services=services, categories=categories, search=search,
                            selected_category=category, min_price=min_price, max_price=max_price,
                            sort=sort, page=page, total_pages=total_pages, total=total)
@@ -1126,6 +1150,20 @@ def post_service():
             db.execute("INSERT INTO services (title, description, price, delivery_days, category_id, seller_id, tags, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                        (title, description, price, delivery_days or 3, category_id, session["user_id"], tags, final_image))
             new_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+            # Notify users with matching saved searches
+            cat_row2 = db.execute("SELECT slug FROM categories WHERE id=?", (category_id,)).fetchone()
+            cat_slug2 = cat_row2["slug"] if cat_row2 else ""
+            saved = db.execute("SELECT * FROM saved_searches WHERE user_id != ?", (session["user_id"],)).fetchall()
+            for ss in saved:
+                match = False
+                if ss["query"] and ss["query"].lower() in title.lower():
+                    match = True
+                if ss["category"] and ss["category"] == cat_slug2:
+                    match = True
+                if match:
+                    notify(db, ss["user_id"], "New Service Matches Your Search",
+                           f'A new service "{title[:60]}" matches your saved search "{ss["label"]}".',
+                           url_for("service_detail", service_id=new_id))
         flash("Service posted successfully!", "success")
         return redirect(url_for("service_detail", service_id=new_id))
     return render_template("post_service.html", categories=categories)
@@ -1340,7 +1378,8 @@ def order_detail(order_id):
         messages = db.execute("""SELECT m.*, u.name as sender_name FROM messages m JOIN users u ON m.sender_id=u.id
             WHERE m.order_id=? ORDER BY m.created_at ASC""", (order_id,)).fetchall()
         db.execute("UPDATE messages SET is_read=1 WHERE order_id=? AND sender_id != ?", (order_id, session["user_id"]))
-    return render_template("order_detail.html", order=order, messages=messages)
+        milestones = db.execute("SELECT * FROM order_milestones WHERE order_id=? ORDER BY created_at ASC", (order_id,)).fetchall()
+    return render_template("order_detail.html", order=order, messages=messages, milestones=milestones)
 
 @app.route("/orders/<int:order_id>/update-status", methods=["POST"])
 @login_required
@@ -1673,7 +1712,8 @@ def account():
         return redirect(url_for("account"))
     with get_db() as db:
         user = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
-    return render_template("account.html", user=user)
+        saved_searches = db.execute("SELECT * FROM saved_searches WHERE user_id=? ORDER BY created_at DESC", (session["user_id"],)).fetchall()
+    return render_template("account.html", user=user, saved_searches=saved_searches)
 
 # ── Service FAQs ────────────────────────────────────────────────────────────
 @app.route("/services/<int:service_id>/faqs", methods=["GET", "POST"])
@@ -1990,6 +2030,103 @@ def stars_filter(value):
 def payment_label(method):
     labels = {"upi":"UPI","netbanking":"Net Banking","card":"Credit / Debit Card","paypal":"PayPal","bank_transfer":"Bank Transfer","wallet":"Digital Wallet"}
     return labels.get(method, method.title() if method else "—")
+
+# ── Seller reply to review ────────────────────────────────────────────────────
+@app.route("/review/<int:review_id>/reply", methods=["POST"])
+@login_required
+def reply_review(review_id):
+    reply = request.form.get("reply", "").strip()
+    if not reply:
+        flash("Reply cannot be empty.", "danger")
+        return redirect(request.referrer or url_for("index"))
+    with get_db() as db:
+        rv = db.execute("""
+            SELECT rv.*, s.seller_id, s.id as svc_id FROM reviews rv
+            JOIN services s ON rv.service_id = s.id WHERE rv.id = ?
+        """, (review_id,)).fetchone()
+        if not rv or rv["seller_id"] != session["user_id"]:
+            flash("Not authorised.", "danger")
+            return redirect(request.referrer or url_for("index"))
+        db.execute("UPDATE reviews SET seller_reply=?, seller_replied_at=datetime('now') WHERE id=?",
+                   (reply, review_id))
+    flash("Reply posted.", "success")
+    return redirect(url_for("service_detail", service_id=rv["svc_id"]))
+
+# ── Quick availability toggle ─────────────────────────────────────────────────
+@app.route("/toggle_availability", methods=["POST"])
+@login_required
+def toggle_availability():
+    with get_db() as db:
+        current = db.execute("SELECT is_available FROM users WHERE id=?", (session["user_id"],)).fetchone()
+        new_val = 0 if (current and current["is_available"]) else 1
+        db.execute("UPDATE users SET is_available=? WHERE id=?", (new_val, session["user_id"]))
+    return jsonify({"is_available": new_val})
+
+# ── Order milestones ──────────────────────────────────────────────────────────
+@app.route("/orders/<int:order_id>/milestones", methods=["POST"])
+@login_required
+def add_milestone(order_id):
+    title = request.form.get("title", "").strip()
+    if not title:
+        flash("Milestone title required.", "danger")
+        return redirect(url_for("order_detail", order_id=order_id))
+    with get_db() as db:
+        order = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+        if not order or order["seller_id"] != session["user_id"] or order["status"] not in ("active", "pending"):
+            flash("Not authorised.", "danger")
+            return redirect(url_for("my_orders"))
+        db.execute("INSERT INTO order_milestones (order_id, title) VALUES (?, ?)", (order_id, title))
+        notify(db, order["buyer_id"], "New Milestone Added",
+               f'Seller added milestone "{title[:60]}" to your order.',
+               url_for("order_detail", order_id=order_id))
+    flash("Milestone added.", "success")
+    return redirect(url_for("order_detail", order_id=order_id))
+
+@app.route("/orders/<int:order_id>/milestones/<int:milestone_id>/complete", methods=["POST"])
+@login_required
+def complete_milestone(order_id, milestone_id):
+    with get_db() as db:
+        order = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+        if not order or order["seller_id"] != session["user_id"]:
+            flash("Not authorised.", "danger")
+            return redirect(url_for("my_orders"))
+        ms = db.execute("SELECT * FROM order_milestones WHERE id=? AND order_id=?", (milestone_id, order_id)).fetchone()
+        if ms:
+            db.execute("UPDATE order_milestones SET is_done=1, completed_at=datetime('now') WHERE id=?", (milestone_id,))
+            notify(db, order["buyer_id"], "Milestone Completed",
+                   f'Seller completed milestone "{ms["title"][:60]}".',
+                   url_for("order_detail", order_id=order_id))
+    flash("Milestone marked complete.", "success")
+    return redirect(url_for("order_detail", order_id=order_id))
+
+# ── Saved searches ────────────────────────────────────────────────────────────
+@app.route("/save_search", methods=["POST"])
+@login_required
+def save_search():
+    query = request.form.get("query", "").strip()
+    category = request.form.get("category", "").strip()
+    label = request.form.get("label", query or category or "Search").strip()[:80]
+    if not query and not category:
+        flash("Nothing to save.", "warning")
+        return redirect(request.referrer or url_for("browse"))
+    with get_db() as db:
+        existing = db.execute("SELECT id FROM saved_searches WHERE user_id=? AND query=? AND category=?",
+                               (session["user_id"], query, category)).fetchone()
+        if existing:
+            flash("Search already saved.", "info")
+        else:
+            db.execute("INSERT INTO saved_searches (user_id, query, category, label) VALUES (?, ?, ?, ?)",
+                       (session["user_id"], query, category, label))
+            flash("Search saved! You'll be notified when matching services are posted.", "success")
+    return redirect(request.referrer or url_for("browse"))
+
+@app.route("/saved_searches/delete/<int:ss_id>", methods=["POST"])
+@login_required
+def delete_saved_search(ss_id):
+    with get_db() as db:
+        db.execute("DELETE FROM saved_searches WHERE id=? AND user_id=?", (ss_id, session["user_id"]))
+    flash("Saved search removed.", "info")
+    return redirect(url_for("account"))
 
 @app.errorhandler(404)
 def page_not_found(e):

@@ -15,7 +15,7 @@
 
       <!-- Sidebar Nav -->
       <div class="fh-panel" style="padding:10px;">
-        {% for anchor, icon, label in [("#profile","bi-person","Profile Info"),("#password","bi-lock","Change Password"),("#danger","bi-exclamation-triangle","Danger Zone")] %}
+        {% for anchor, icon, label in [("#profile","bi-person","Profile Info"),("#password","bi-lock","Change Password"),("#saved-searches","bi-bell","Search Alerts"),("#danger","bi-exclamation-triangle","Danger Zone")] %}
         <a href="{{ anchor }}" class="fh-filter-option" style="margin-bottom:2px;"><i class="bi {{ icon }} me-2"></i>{{ label }}</a>
         {% endfor %}
         <div class="divider"></div>
@@ -128,6 +128,34 @@
             </div>
           </form>
         </div>
+
+        <!-- Saved Searches -->
+        {% if saved_searches is defined %}
+        <div id="saved-searches" class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title">🔔 Saved Search Alerts</div>
+          {% if saved_searches %}
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            {% for ss in saved_searches %}
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);">
+              <i class="bi bi-bell" style="color:var(--accent);font-size:14px;flex-shrink:0;"></i>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:13px;color:var(--ink);">{{ ss.label }}</div>
+                <div style="font-size:11px;color:var(--text-soft);">
+                  {% if ss.query %}Keywords: "{{ ss.query }}"{% endif %}
+                  {% if ss.category %}{% if ss.query %} · {% endif %}Category: {{ ss.category }}{% endif %}
+                </div>
+              </div>
+              <form method="POST" action="{{ url_for('delete_saved_search', ss_id=ss.id) }}" style="margin:0;">
+                <button type="submit" style="background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:16px;padding:2px 4px;" title="Remove"><i class="bi bi-x-lg"></i></button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p style="font-size:13px;color:var(--text-soft);">No saved searches yet. Go to <a href="{{ url_for('browse') }}" style="color:var(--accent);">Browse</a>, search for something, and click <strong>Save Search</strong> to get notified when new matching services are posted.</p>
+          {% endif %}
+        </div>
+        {% endif %}
 
         <!-- Danger Zone -->
         <div id="danger" class="fh-panel" style="border-color:rgba(255,101,132,.25);background:rgba(255,101,132,.03);">
