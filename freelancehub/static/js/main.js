@@ -326,6 +326,72 @@ function initScrollTop() {
   });
 }
 
+// ── Typewriter cycling text ───────────────────────────────────────
+function initHeroTypewriter() {
+  const el = document.getElementById('hero-typewriter');
+  if (!el) return;
+  const words = [
+    'logo design', 'React websites', 'video editing',
+    'brand identity', 'SEO content', 'mobile apps',
+    'UI/UX design', 'data analysis'
+  ];
+  let wi = 0, ci = 0, deleting = false;
+  function tick() {
+    const word = words[wi];
+    if (!deleting) {
+      ci++;
+      el.textContent = word.slice(0, ci);
+      if (ci === word.length) { deleting = true; setTimeout(tick, 1900); return; }
+      setTimeout(tick, 68);
+    } else {
+      ci--;
+      el.textContent = word.slice(0, ci);
+      if (ci === 0) { deleting = false; wi = (wi + 1) % words.length; setTimeout(tick, 320); return; }
+      setTimeout(tick, 38);
+    }
+  }
+  setTimeout(tick, 1400);
+}
+
+// ── Button ripple ─────────────────────────────────────────────────
+function initRipple() {
+  const sel = '.btn-primary-fh, .btn-outline-fh, .btn-gold-fh, .fh-cta-btn, .btn-nav-primary';
+  document.querySelectorAll(sel).forEach(attachRipple);
+}
+function attachRipple(btn) {
+  btn.addEventListener('click', function(e) {
+    const r = btn.getBoundingClientRect();
+    const size = Math.max(r.width, r.height) * 2.2;
+    const x = e.clientX - r.left - size / 2;
+    const y = e.clientY - r.top - size / 2;
+    const ripple = document.createElement('span');
+    ripple.className = 'fh-ripple';
+    ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;`;
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+  });
+}
+
+// ── Page fade transitions ─────────────────────────────────────────
+function initPageTransitions() {
+  document.body.classList.add('fh-page-enter');
+  document.addEventListener('click', e => {
+    const link = e.target.closest('a[href]');
+    if (!link) return;
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')
+        || link.target === '_blank' || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    try {
+      const url = new URL(link.href);
+      if (url.origin !== location.origin) return;
+    } catch { return; }
+    e.preventDefault();
+    document.body.classList.remove('fh-page-enter');
+    document.body.classList.add('fh-page-exit');
+    setTimeout(() => { window.location.href = link.href; }, 240);
+  });
+}
+
 // ── Init on DOM ready ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initCharCounters();
@@ -340,6 +406,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollReveal();
   initCursorGlow();
   initCardTilt();
+  initHeroTypewriter();
+  initRipple();
+  initPageTransitions();
 
   // Checkout payment steps
   document.querySelectorAll('.fh-checkout-step').forEach(step => {

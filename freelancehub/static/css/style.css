@@ -1545,3 +1545,18 @@ section, .fh-hero, .fh-trust-section,
 
 /* ── Card tilt — smooth reset via JS, disable CSS hover transform conflict ── */
 .fh-service-card { transform-style: preserve-3d; }
+
+/* ── Typewriter cursor ───────────────────────────────────────────── */
+#hero-typewriter::after { content: '|'; animation: twBlink .7s step-end infinite; margin-left: 1px; }
+@keyframes twBlink { 50% { opacity: 0; } }
+
+/* ── Button ripple ───────────────────────────────────────────────── */
+.btn-primary-fh, .btn-outline-fh, .btn-gold-fh, .fh-cta-btn { position: relative; overflow: hidden; }
+.fh-ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,.22); transform: scale(0); animation: rippleOut .55s ease-out forwards; pointer-events: none; }
+@keyframes rippleOut { to { transform: scale(1); opacity: 0; } }
+
+/* ── Page fade transitions ───────────────────────────────────────── */
+@keyframes pgIn  { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+@keyframes pgOut { to   { opacity: 0; transform: translateY(-6px); } }
+.fh-page-enter { animation: pgIn .28s ease both; }
+.fh-page-exit  { animation: pgOut .22s ease both; pointer-events: none; }
