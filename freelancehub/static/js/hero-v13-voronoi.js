@@ -2,7 +2,7 @@
  * Hero v13 — Voronoi Cells
  * Living stained-glass cells built from drifting seed points.
  * Cells pulse with colour; mouse seed brightens nearby cells.
- * Redraws only when seeds move enough to matter.
+ * Elliptical fade around text content area — cells and cursor glow dim near text.
  */
 (function () {
   'use strict';
@@ -50,6 +50,14 @@
     seeds = Array.from({ length: SEED_COUNT }, (_, i) => makeSeed(i));
   }
 
+  // Elliptical fade — 0 inside content block, 1 toward edges
+  function edgeFade(x, y) {
+    const dx = (x - W * 0.5)  / (W * 0.22);
+    const dy = (y - H * 0.54) / (H * 0.38);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return Math.min(1, Math.max(0.0, (dist - 1.0) / 0.4));
+  }
+
   // Find nearest seed index for pixel (px, py)
   function nearest(px, py) {
     let best = 0, bestD = Infinity;
@@ -61,8 +69,7 @@
     return { idx: best, d: Math.sqrt(bestD) };
   }
 
-  // Rasterise Voronoi using a coarse grid, then upscale
-  const CELL = 6; // px per sample
+  const CELL = 6;
 
   function drawVoronoi() {
     const cols2 = Math.ceil(W / CELL) + 1;
@@ -71,15 +78,18 @@
     for (let row = 0; row < rows2; row++) {
       for (let col = 0; col < cols2; col++) {
         const px = col * CELL, py = row * CELL;
-        const { idx, d } = nearest(px, py);
+        const fade = edgeFade(px, py);
+        if (fade < 0.01) continue; // skip fully hidden cells
+
+        const { idx } = nearest(px, py);
         const s = seeds[idx];
         const pulse = 0.5 + 0.5 * Math.sin(t * 0.8 + s.phase);
 
-        // Mouse proximity brightens cell
+        // Mouse proximity glow — also faded near text
         const mdist = Math.hypot(px - mx, py - my);
-        const mGlow = Math.max(0, 1 - mdist / (W * 0.22)) * 0.6;
+        const mGlow = Math.max(0, 1 - mdist / (W * 0.22)) * 0.6 * fade;
 
-        const baseAlpha = 0.055 + pulse * 0.07 + mGlow;
+        const baseAlpha = (0.055 + pulse * 0.07) * fade + mGlow;
 
         const [r, g, b] = s.col;
         ctx.fillStyle = `rgba(${r},${g},${b},${baseAlpha.toFixed(3)})`;
@@ -88,13 +98,15 @@
     }
   }
 
-  // Draw cell borders (edges where nearest seed changes)
   function drawEdges() {
     const STEP = CELL;
     ctx.lineWidth = 0.6;
 
     for (let py = 0; py < H; py += STEP) {
       for (let px = 0; px < W; px += STEP) {
+        const fade = edgeFade(px + STEP / 2, py + STEP / 2);
+        if (fade < 0.01) continue;
+
         const { idx: c0 } = nearest(px, py);
         const { idx: cr } = nearest(px + STEP, py);
         const { idx: cd } = nearest(px, py + STEP);
@@ -105,7 +117,7 @@
           ctx.beginPath();
           ctx.moveTo(px + STEP, py);
           ctx.lineTo(px + STEP, py + STEP);
-          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5).toFixed(3)})`;
+          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5 * fade).toFixed(3)})`;
           ctx.stroke();
         }
         if (c0 !== cd) {
@@ -114,20 +126,21 @@
           ctx.beginPath();
           ctx.moveTo(px, py + STEP);
           ctx.lineTo(px + STEP, py + STEP);
-          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5).toFixed(3)})`;
+          ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(pulse * 0.5 * fade).toFixed(3)})`;
           ctx.stroke();
         }
       }
     }
   }
 
-  // Seed glow dots
   function drawSeeds() {
     for (const s of seeds) {
+      const fade = edgeFade(s.x, s.y);
+      if (fade < 0.01) continue;
       const pulse = 0.5 + 0.5 * Math.sin(t * 0.8 + s.phase);
       const r2 = 4 + pulse * 4;
       const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r2 * 3);
-      grd.addColorStop(0, `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${(0.5 + pulse * 0.4).toFixed(3)})`);
+      grd.addColorStop(0, `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${((0.5 + pulse * 0.4) * fade).toFixed(3)})`);
       grd.addColorStop(1, `rgba(${s.col[0]},${s.col[1]},${s.col[2]},0)`);
       ctx.beginPath();
       ctx.arc(s.x, s.y, r2 * 3, 0, Math.PI * 2);
@@ -140,7 +153,6 @@
     ctx.clearRect(0, 0, W, H);
     t += 0.016;
 
-    // Drift seeds
     for (const s of seeds) {
       s.x += s.vx; s.y += s.vy;
       if (s.x < 0 || s.x > W) s.vx *= -1;
@@ -160,6 +172,7 @@
     my = e.clientY - r.top;
   }, { passive: true });
   hero.addEventListener('mouseleave', () => { mx = -9999; my = -9999; });
+  hero.addEventListener('selectstart', e => { e.preventDefault(); });
   window.addEventListener('resize', resize, { passive: true });
 
   resize();
