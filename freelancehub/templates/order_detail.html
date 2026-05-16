@@ -142,7 +142,17 @@
                 {% for msg in messages %}
                 <div style="display:flex;flex-direction:column;max-width:78%;{{ 'margin-left:auto;align-items:flex-end;' if msg.sender_id == current_user.id else 'align-items:flex-start;' }}">
                   <div style="font-size:10.5px;color:var(--text-soft);margin-bottom:3px;">{{ msg.sender_name }} · {{ msg.created_at | time_ago }}</div>
+                  {% if msg.content %}
                   <div style="padding:10px 14px;border-radius:{% if msg.sender_id == current_user.id %}12px 4px 12px 12px{% else %}4px 12px 12px 12px{% endif %};font-size:13.5px;line-height:1.5;{{ 'background:var(--accent);color:white;' if msg.sender_id == current_user.id else 'background:var(--surface-2);border:1px solid var(--border);color:var(--text);' }}">{{ msg.content }}</div>
+                  {% endif %}
+                  {% if msg.attachment_url %}
+                  {% set att = msg.attachment_url %}
+                  {% if att.endswith('.png') or att.endswith('.jpg') or att.endswith('.jpeg') or att.endswith('.gif') or att.endswith('.webp') %}
+                  <a href="{{ att }}" target="_blank"><img src="{{ att }}" alt="Attachment" style="max-width:200px;max-height:150px;object-fit:cover;border-radius:8px;margin-top:4px;display:block;" /></a>
+                  {% else %}
+                  <a href="{{ att }}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:6px 12px;border-radius:8px;background:rgba(108,99,255,.1);color:var(--accent);font-size:12px;font-weight:600;text-decoration:none;"><i class="bi bi-paperclip"></i>Download Attachment</a>
+                  {% endif %}
+                  {% endif %}
                 </div>
                 {% endfor %}
               {% else %}
@@ -154,9 +164,18 @@
             </div>
             {% if order.status != 'cancelled' %}
             <div class="fh-order-chat-input">
-              <form action="{{ url_for('send_message', order_id=order.id) }}" method="POST" style="display:flex;gap:8px;width:100%;align-items:flex-end;">
-                <textarea name="content" class="fh-textarea" placeholder="Type a message..." style="min-height:60px;flex:1;font-size:13.5px;" required onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').submit();}"></textarea>
-                <button type="submit" class="btn-primary-fh btn-sm-fh" style="align-self:flex-end;flex-shrink:0;"><i class="bi bi-send-fill"></i></button>
+              <form action="{{ url_for('send_message', order_id=order.id) }}" method="POST" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:8px;width:100%;">
+                <div style="display:flex;gap:8px;align-items:flex-end;">
+                  <textarea name="content" class="fh-textarea" placeholder="Type a message..." style="min-height:60px;flex:1;font-size:13.5px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').submit();}"></textarea>
+                  <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                    <label title="Attach file" style="width:38px;height:38px;border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-soft);font-size:16px;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-soft)'">
+                      <i class="bi bi-paperclip"></i>
+                      <input type="file" name="attachment" accept="image/*,.pdf,.doc,.docx,.zip,.txt" style="display:none;" onchange="showAttachName(this)" />
+                    </label>
+                    <button type="submit" class="btn-primary-fh btn-sm-fh" style="width:38px;height:38px;padding:0;justify-content:center;"><i class="bi bi-send-fill"></i></button>
+                  </div>
+                </div>
+                <div id="attach-name" style="display:none;font-size:11px;color:var(--accent-3);"><i class="bi bi-check-circle me-1"></i><span></span></div>
               </form>
             </div>
             {% endif %}
@@ -304,6 +323,16 @@ if (mc) mc.scrollTop = mc.scrollHeight;
   tick();
   setInterval(tick, 1000);
 })();
+
+function showAttachName(input) {
+  const el = document.getElementById('attach-name');
+  if (input.files && input.files[0]) {
+    el.querySelector('span').textContent = input.files[0].name;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
 
 function copyRef() {
   const ref = document.getElementById('order-ref').textContent.trim();

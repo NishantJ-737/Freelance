@@ -77,6 +77,7 @@ def ensure_columns(db):
         "ALTER TABLE services ADD COLUMN packages TEXT",
         "ALTER TABLE reviews ADD COLUMN seller_reply TEXT",
         "ALTER TABLE reviews ADD COLUMN seller_replied_at TEXT",
+        "ALTER TABLE messages ADD COLUMN attachment_url TEXT",
     ]
     for sql in migrations:
         try:
@@ -268,6 +269,15 @@ def init_db():
                 label TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS portfolio_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                seller_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                image_url TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
             );
         """)
         ensure_columns(db)
@@ -591,7 +601,7 @@ def admin_required(f):
 
 def current_user():
     if "user_id" in session:
-        return {"id": session["user_id"], "name": session["name"], "role": session["role"], "email": session["email"], "is_admin": session.get("is_admin", False)}
+        return {"id": session["user_id"], "name": session["name"], "role": session["role"], "email": session["email"], "is_admin": session.get("is_admin", False), "is_available": session.get("is_available", 1)}
     return None
 
 @app.context_processor
@@ -601,10 +611,13 @@ def inject_user():
     unread_inquiries = 0
     if user:
         with get_db() as db:
-            db_user = db.execute("SELECT is_banned, COALESCE(is_deleted,0) as is_deleted FROM users WHERE id=?", (user["id"],)).fetchone()
+            db_user = db.execute("SELECT is_banned, COALESCE(is_deleted,0) as is_deleted, COALESCE(is_available,1) as is_available FROM users WHERE id=?", (user["id"],)).fetchone()
             if db_user and (db_user["is_banned"] or db_user["is_deleted"]):
                 session.clear()
                 return dict(current_user=None, unread_notifications=0, unread_inquiries=0)
+            if db_user:
+                session["is_available"] = db_user["is_available"]
+                user = current_user()
             unread_count = db.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0", (user["id"],)).fetchone()[0]
             unread_inquiries = db.execute("""
                 SELECT COUNT(DISTINCT i.id)
@@ -1414,14 +1427,22 @@ def update_order_status(order_id):
 @login_required
 def send_message(order_id):
     content = request.form.get("content", "").strip()
-    if not content:
+    attachment_url = None
+    f = request.files.get("attachment")
+    if f and f.filename:
+        ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+        if ext in ALLOWED_EXTENSIONS | {"pdf", "doc", "docx", "zip", "txt"}:
+            fname = f"order_{order_id}_{session['user_id']}_{secure_filename(f.filename)}"
+            f.save(os.path.join(UPLOAD_FOLDER, fname))
+            attachment_url = f"/static/uploads/{fname}"
+    if not content and not attachment_url:
         return redirect(url_for("order_detail", order_id=order_id))
     with get_db() as db:
         order = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
         if not order or session["user_id"] not in (order["buyer_id"], order["seller_id"]):
             flash("Access denied.", "danger")
             return redirect(url_for("my_orders"))
-        db.execute("INSERT INTO messages (order_id, sender_id, content) VALUES (?, ?, ?)", (order_id, session["user_id"], content))
+        db.execute("INSERT INTO messages (order_id, sender_id, content, attachment_url) VALUES (?, ?, ?, ?)", (order_id, session["user_id"], content or "", attachment_url))
         other = order["buyer_id"] if session["user_id"] == order["seller_id"] else order["seller_id"]
         svc = db.execute("SELECT title FROM services WHERE id=?", (order["service_id"],)).fetchone()
         notify(db, other, f"New message from {session['name']}", f"Message about \"{svc['title']}\".", url_for("order_detail", order_id=order_id))
@@ -1515,10 +1536,14 @@ def admin_ban_user(user_id):
 @admin_required
 def admin_toggle_service(service_id):
     with get_db() as db:
-        svc = db.execute("SELECT is_approved FROM services WHERE id=?", (service_id,)).fetchone()
+        svc = db.execute("SELECT is_approved, seller_id, title FROM services WHERE id=?", (service_id,)).fetchone()
         if svc:
             new_val = 0 if svc["is_approved"] else 1
             db.execute("UPDATE services SET is_approved=? WHERE id=?", (new_val, service_id))
+            if new_val:
+                notify(db, svc["seller_id"], "Service Approved!", f'Your service "{svc["title"][:60]}" has been approved and is now live on the marketplace.', url_for("service_detail", service_id=service_id))
+            else:
+                notify(db, svc["seller_id"], "Service Hidden", f'Your service "{svc["title"][:60]}" has been temporarily hidden by an admin. Contact support for details.', url_for("support"))
             flash("Service " + ("approved." if new_val else "hidden."), "success")
     return redirect(url_for("admin_dashboard"))
 
@@ -1665,14 +1690,16 @@ def profile(user_id):
         completed_orders = db.execute("SELECT COUNT(*) FROM orders WHERE seller_id=? AND status='completed'", (user_id,)).fetchone()[0]
         avg_rating = db.execute("SELECT COALESCE(AVG(r.rating),0) FROM reviews r JOIN services s ON r.service_id=s.id WHERE s.seller_id=?", (user_id,)).fetchone()[0]
         review_count = db.execute("SELECT COUNT(*) FROM reviews r JOIN services s ON r.service_id=s.id WHERE s.seller_id=?", (user_id,)).fetchone()[0]
-        recent_reviews = db.execute("""SELECT rv.*, u.name as reviewer_name, s.title as service_title
+        recent_reviews = db.execute("""SELECT rv.*, u.name as reviewer_name, s.title as service_title,
+            rv.seller_reply, rv.seller_replied_at
             FROM reviews rv JOIN users u ON rv.reviewer_id = u.id JOIN services s ON rv.service_id = s.id
             WHERE s.seller_id=? ORDER BY rv.created_at DESC LIMIT 6""", (user_id,)).fetchall()
+        portfolio = db.execute("SELECT * FROM portfolio_items WHERE seller_id=? ORDER BY created_at DESC", (user_id,)).fetchall()
     seller_level = get_seller_level(completed_orders, avg_rating)
     return render_template("profile.html", profile_user=user, services=services,
                            completed_orders=completed_orders, avg_rating=avg_rating,
                            review_count=review_count, recent_reviews=recent_reviews,
-                           seller_level=seller_level)
+                           seller_level=seller_level, portfolio=portfolio)
 
 @app.route("/account", methods=["GET","POST"])
 @login_required
@@ -1713,7 +1740,8 @@ def account():
     with get_db() as db:
         user = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
         saved_searches = db.execute("SELECT * FROM saved_searches WHERE user_id=? ORDER BY created_at DESC", (session["user_id"],)).fetchall()
-    return render_template("account.html", user=user, saved_searches=saved_searches)
+        portfolio = db.execute("SELECT * FROM portfolio_items WHERE seller_id=? ORDER BY created_at DESC", (session["user_id"],)).fetchall() if session.get("role") == "seller" else []
+    return render_template("account.html", user=user, saved_searches=saved_searches, portfolio=portfolio)
 
 # ── Service FAQs ────────────────────────────────────────────────────────────
 @app.route("/services/<int:service_id>/faqs", methods=["GET", "POST"])
@@ -2060,7 +2088,43 @@ def toggle_availability():
         current = db.execute("SELECT is_available FROM users WHERE id=?", (session["user_id"],)).fetchone()
         new_val = 0 if (current and current["is_available"]) else 1
         db.execute("UPDATE users SET is_available=? WHERE id=?", (new_val, session["user_id"]))
+    session["is_available"] = new_val
     return jsonify({"is_available": new_val})
+
+# ── Portfolio ─────────────────────────────────────────────────────────────────
+@app.route("/portfolio/add", methods=["POST"])
+@login_required
+def add_portfolio():
+    if session.get("role") != "seller":
+        return redirect(url_for("index"))
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    image_url = request.form.get("image_url", "").strip()
+    f = request.files.get("image_file")
+    if f and f.filename:
+        ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+        if ext in ALLOWED_EXTENSIONS:
+            fname = f"portfolio_{session['user_id']}_{secure_filename(f.filename)}"
+            f.save(os.path.join(UPLOAD_FOLDER, fname))
+            image_url = f"/static/uploads/{fname}"
+    if not title:
+        flash("Title is required.", "danger")
+        return redirect(url_for("account") + "#portfolio")
+    with get_db() as db:
+        db.execute("INSERT INTO portfolio_items (seller_id, title, description, image_url) VALUES (?,?,?,?)",
+                   (session["user_id"], title, description, image_url or None))
+    flash("Portfolio item added.", "success")
+    return redirect(url_for("account") + "#portfolio")
+
+@app.route("/portfolio/<int:item_id>/delete", methods=["POST"])
+@login_required
+def delete_portfolio(item_id):
+    with get_db() as db:
+        item = db.execute("SELECT * FROM portfolio_items WHERE id=?", (item_id,)).fetchone()
+        if item and item["seller_id"] == session["user_id"]:
+            db.execute("DELETE FROM portfolio_items WHERE id=?", (item_id,))
+            flash("Portfolio item removed.", "success")
+    return redirect(url_for("account") + "#portfolio")
 
 # ── Order milestones ──────────────────────────────────────────────────────────
 @app.route("/orders/<int:order_id>/milestones", methods=["POST"])

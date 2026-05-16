@@ -14,6 +14,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}" />
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.svg') }}" />
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
   <title>{% block title %}FreelanceHub — India's Premium Freelance Marketplace{% endblock %}</title>
   <meta name="description" content="Hire top freelancers for design, development, writing, marketing, video and more. FreelanceHub — India's most trusted freelance marketplace." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -103,9 +104,9 @@
               <div class="email">{{ current_user.email }}</div>
               <span class="role-tag">{{ current_user.role }}</span>
               {% if current_user.role == 'seller' %}
-              <button id="avail-toggle-btn" onclick="toggleAvailability(this)" style="margin-top:8px;width:100%;border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s;background:none;">
-                <span id="avail-dot" style="width:7px;height:7px;border-radius:50%;background:var(--accent-3);display:inline-block;flex-shrink:0;"></span>
-                <span id="avail-label">Available</span>
+              <button id="avail-toggle-btn" onclick="toggleAvailability(this)" data-available="{{ current_user.is_available }}" style="margin-top:8px;width:100%;border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s;background:none;">
+                <span id="avail-dot" style="width:7px;height:7px;border-radius:50%;background:{% if current_user.is_available %}var(--accent-3){% else %}var(--accent-2){% endif %};display:inline-block;flex-shrink:0;"></span>
+                <span id="avail-label">{% if current_user.is_available %}Available{% else %}Unavailable{% endif %}</span>
               </button>
               {% endif %}
             </div>

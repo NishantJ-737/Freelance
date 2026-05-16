@@ -1,0 +1,30 @@
+{
+  "name": "FreelanceHub",
+  "short_name": "FreelanceHub",
+  "description": "India's premium freelance marketplace — hire top talent or earn as a freelancer.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#6c63ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Services",
+      "url": "/browse",
+      "description": "Find freelance services"
+    },
+    {
+      "name": "Post a Service",
+      "url": "/post-service",
+      "description": "List your services"
+    }
+  ]
+}

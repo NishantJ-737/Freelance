@@ -108,11 +108,25 @@
       {% endfor %}
     </div>
     {% else %}
-    <div class="fh-empty-state">
-      <div class="fh-empty-icon">🚀</div>
-      <div class="fh-empty-title">No services yet</div>
-      <div class="fh-empty-sub">Create your first service and start earning today</div>
-      <a href="{{ url_for('post_service') }}" class="btn-primary-fh">Post Your First Service</a>
+    <div class="fh-empty-state" style="padding:48px 24px;">
+      <div class="fh-empty-icon" style="font-size:3.5rem;">🚀</div>
+      <div class="fh-empty-title">Launch your freelance career</div>
+      <div class="fh-empty-sub" style="max-width:420px;margin:0 auto 32px;">Your first service is just a few clicks away. Thousands of clients are searching for skills like yours right now.</div>
+      <a href="{{ url_for('post_service') }}" class="btn-primary-fh" style="margin-bottom:40px;">Post Your First Service <i class="bi bi-arrow-right"></i></a>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:700px;margin:0 auto;text-align:left;">
+        {% for icon, title, tip in [
+          ("💡","Write a clear title","Be specific — 'Professional Logo Design' outperforms 'Logo'"),
+          ("💰","Price competitively","Check similar services; Rs.500–5,000 works well for first listings"),
+          ("📸","Add a great image","Services with images get 3× more clicks than those without"),
+          ("⭐","Earn your first review","Deliver fast and over-communicate to build early trust")
+        ] %}
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:16px;">
+          <div style="font-size:1.4rem;margin-bottom:8px;">{{ icon }}</div>
+          <div style="font-weight:700;font-size:13px;color:var(--ink);margin-bottom:4px;">{{ title }}</div>
+          <div style="font-size:12px;color:var(--text-soft);line-height:1.5;">{{ tip }}</div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
     {% endif %}
   </div>

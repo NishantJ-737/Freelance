@@ -15,7 +15,7 @@
 
       <!-- Sidebar Nav -->
       <div class="fh-panel" style="padding:10px;">
-        {% for anchor, icon, label in [("#profile","bi-person","Profile Info"),("#password","bi-lock","Change Password"),("#saved-searches","bi-bell","Search Alerts"),("#danger","bi-exclamation-triangle","Danger Zone")] %}
+        {% for anchor, icon, label in [("#profile","bi-person","Profile Info"),("#password","bi-lock","Change Password"),("#saved-searches","bi-bell","Search Alerts"),("#portfolio","bi-images","Portfolio"),("#danger","bi-exclamation-triangle","Danger Zone")] %}
         <a href="{{ anchor }}" class="fh-filter-option" style="margin-bottom:2px;"><i class="bi {{ icon }} me-2"></i>{{ label }}</a>
         {% endfor %}
         <div class="divider"></div>
@@ -154,6 +154,53 @@
           {% else %}
           <p style="font-size:13px;color:var(--text-soft);">No saved searches yet. Go to <a href="{{ url_for('browse') }}" style="color:var(--accent);">Browse</a>, search for something, and click <strong>Save Search</strong> to get notified when new matching services are posted.</p>
           {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Portfolio -->
+        {% if current_user and current_user.role == 'seller' %}
+        <div id="portfolio" class="fh-panel" style="margin-bottom:20px;">
+          <div class="fh-panel-title">🖼️ Portfolio</div>
+          <p style="font-size:13px;color:var(--text-soft);margin-bottom:16px;">Showcase your best work to attract more clients. Images, project descriptions, case studies — anything that proves your skill.</p>
+          {% if portfolio %}
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
+            {% for item in portfolio %}
+            <div style="border-radius:var(--radius-md);overflow:hidden;border:1.5px solid var(--border);background:var(--surface-2);position:relative;">
+              {% if item.image_url %}
+              <img src="{{ item.image_url }}" alt="{{ item.title }}" style="width:100%;height:100px;object-fit:cover;" onerror="this.style.display='none'" />
+              {% else %}
+              <div style="width:100%;height:100px;background:linear-gradient(135deg,rgba(108,99,255,.12),rgba(67,217,173,.12));display:flex;align-items:center;justify-content:center;font-size:1.8rem;">🎨</div>
+              {% endif %}
+              <div style="padding:10px;">
+                <div style="font-weight:600;font-size:12px;color:var(--ink);margin-bottom:3px;">{{ item.title | truncate(28) }}</div>
+                {% if item.description %}<div style="font-size:11px;color:var(--text-soft);">{{ item.description | truncate(50) }}</div>{% endif %}
+              </div>
+              <form method="POST" action="{{ url_for('delete_portfolio', item_id=item.id) }}" style="position:absolute;top:6px;right:6px;" onsubmit="return confirm('Remove this portfolio item?')">
+                <button type="submit" style="width:26px;height:26px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:white;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x"></i></button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="text-align:center;padding:24px;background:var(--surface-2);border-radius:var(--radius-md);margin-bottom:16px;">
+            <div style="font-size:2rem;margin-bottom:8px;">🎨</div>
+            <div style="font-size:13px;color:var(--text-soft);">No portfolio items yet. Add your best work below!</div>
+          </div>
+          {% endif %}
+          <form method="POST" action="{{ url_for('add_portfolio') }}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="font-weight:700;font-size:13px;color:var(--ink);">Add New Item</div>
+            <input type="text" name="title" class="fh-input" placeholder="Project title *" required maxlength="80" />
+            <textarea name="description" class="fh-textarea" placeholder="Brief description (optional)" style="min-height:70px;" maxlength="300"></textarea>
+            <div>
+              <label class="fh-form-label">Image File</label>
+              <input type="file" name="image_file" accept="image/*" class="fh-input" style="height:auto;padding:8px;" />
+            </div>
+            <div>
+              <label class="fh-form-label">— or Image URL</label>
+              <input type="url" name="image_url" class="fh-input" placeholder="https://..." />
+            </div>
+            <button type="submit" class="btn-primary-fh btn-sm-fh" style="align-self:flex-start;">Add to Portfolio <i class="bi bi-plus-circle"></i></button>
+          </form>
         </div>
         {% endif %}
 

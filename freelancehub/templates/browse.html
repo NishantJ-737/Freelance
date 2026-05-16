@@ -112,7 +112,24 @@
                   onclick="loadMore(this)">
             <i class="bi bi-arrow-down-circle me-1"></i>Load More <span style="color:var(--text-soft);font-size:12px;">· {{ total - services|length * page }} remaining</span>
           </button>
-          <div id="load-more-spinner" style="display:none;margin-top:12px;"><span class="fh-skeleton" style="display:inline-block;width:120px;height:16px;border-radius:8px;"></span></div>
+          <div id="load-more-spinner" style="display:none;margin-top:20px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;max-width:100%;">
+              {% for _ in range(4) %}
+              <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;">
+                <div class="fh-skeleton" style="height:180px;width:100%;"></div>
+                <div style="padding:14px;">
+                  <div class="fh-skeleton" style="height:14px;width:30%;border-radius:6px;margin-bottom:10px;"></div>
+                  <div class="fh-skeleton" style="height:16px;width:85%;border-radius:6px;margin-bottom:6px;"></div>
+                  <div class="fh-skeleton" style="height:14px;width:60%;border-radius:6px;margin-bottom:14px;"></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div class="fh-skeleton" style="height:24px;width:40%;border-radius:6px;"></div>
+                    <div class="fh-skeleton" style="height:32px;width:32px;border-radius:50%;"></div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
         </div>
         {% endif %}
 

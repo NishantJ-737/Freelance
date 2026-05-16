@@ -1511,3 +1511,20 @@ section, .fh-hero, .fh-trust-section,
 .fh-stat:nth-child(3) .fh-stat-num{animation-delay:.15s;}
 .fh-stat:nth-child(5) .fh-stat-num{animation-delay:.25s;}
 .fh-stat:nth-child(7) .fh-stat-num{animation-delay:.35s;}
+
+/* ── Dark mode fixes for new components ─────────────────────────────────── */
+[data-theme="dark"] .fh-cat-card { background:rgba(255,255,255,.03); }
+[data-theme="dark"] .fh-cat-card:hover { background:rgba(108,99,255,.12); }
+[data-theme="dark"] .fh-trust-item { background:rgba(255,255,255,.03); border-color:rgba(255,255,255,.07); }
+[data-theme="dark"] .fh-trust-item:hover { background:rgba(255,255,255,.06); }
+[data-theme="dark"] .fh-stat-num { -webkit-text-fill-color: unset; color: var(--ink); }
+[data-theme="dark"] .fh-testimonial { background:rgba(255,255,255,.03); border-color:rgba(255,255,255,.07); }
+[data-theme="dark"] .fh-section-title { color: var(--ink); }
+[data-theme="dark"] .fh-panel::after { opacity:.2; }
+
+/* Skeleton card shimmer */
+.fh-skeleton { background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+@keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+/* Portfolio grid in profile */
+.fh-portfolio-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
