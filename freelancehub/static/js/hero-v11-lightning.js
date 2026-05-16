@@ -126,6 +126,20 @@
     requestAnimationFrame(frame);
   }
 
+  // Click: blast arcs from click point to all nearby nodes
+  hero.addEventListener('click', e => {
+    const r = hero.getBoundingClientRect();
+    const cx = e.clientX - r.left;
+    const cy = e.clientY - r.top;
+    const col = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    for (const n of nodes) {
+      const d = Math.hypot(n.x - cx, n.y - cy);
+      if (d < W * 0.55) {
+        arcs.push({ x1: cx, y1: cy, x2: n.x, y2: n.y, col, alpha: 0.85 });
+      }
+    }
+  });
+
   hero.addEventListener('mousemove', e => {
     const r = hero.getBoundingClientRect();
     mx = e.clientX - r.left;
