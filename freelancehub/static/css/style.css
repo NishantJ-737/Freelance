@@ -981,3 +981,321 @@ section, .fh-hero, .fh-trust-section,
   height: 100%;
   min-height: 340px;
 }
+
+/* ══════════════════════════════════════════════════════
+   UI ENHANCEMENT v2 — Premium polish pass
+══════════════════════════════════════════════════════ */
+
+/* ── GRADIENT PRIMARY BUTTON ── */
+.btn-primary-fh {
+  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 14px rgba(108,99,255,.28);
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary-fh::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+.btn-primary-fh:hover {
+  background: linear-gradient(135deg, #5a52e0 0%, #7c3aed 100%);
+  box-shadow: 0 8px 28px rgba(108,99,255,.45);
+  transform: translateY(-2px);
+  color: white;
+}
+.btn-gold-fh {
+  box-shadow: 0 4px 14px rgba(245,166,35,.3);
+}
+.btn-gold-fh:hover {
+  box-shadow: 0 8px 28px rgba(245,166,35,.45);
+}
+
+/* ── SERVICE CARD ENHANCEMENTS ── */
+.fh-service-card {
+  box-shadow: 0 2px 8px rgba(10,10,30,.05);
+}
+.fh-service-card:hover {
+  box-shadow: 0 16px 48px rgba(108,99,255,.14), 0 4px 16px rgba(10,10,30,.08);
+  border-color: rgba(108,99,255,.35);
+}
+/* Gradient overlay that appears on hover */
+.fh-service-img-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 45%, rgba(8,6,25,.55) 100%);
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+}
+.fh-service-card:hover .fh-service-img-wrap::after {
+  opacity: 1;
+}
+/* Make image height slightly taller */
+.fh-service-img-wrap { height: 196px; }
+/* Price accent color */
+.fh-service-price {
+  color: var(--accent);
+}
+.fh-service-footer {
+  border-top-color: var(--surface-3);
+}
+
+/* ── PULSING AVAILABILITY DOT ── */
+@keyframes availPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(67,217,173,.6); }
+  60% { box-shadow: 0 0 0 5px rgba(67,217,173,0); }
+}
+.fh-avail-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--accent-3);
+  font-weight: 600;
+}
+.fh-avail-online::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-3);
+  flex-shrink: 0;
+  animation: availPulse 2.2s ease-in-out infinite;
+}
+.fh-avail-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--accent-2);
+  font-weight: 600;
+}
+.fh-avail-busy::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  flex-shrink: 0;
+  opacity: .7;
+}
+
+/* ── NOTIFICATION BADGE PULSE ── */
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,101,132,.5); }
+  60% { box-shadow: 0 0 0 5px rgba(255,101,132,0); }
+}
+.fh-badge { animation: badgePulse 2.5s ease-in-out infinite; }
+
+/* ── GRADIENT SECTION EYEBROWS ── */
+.fh-section-eyebrow {
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: var(--accent); /* fallback */
+}
+
+/* ── PAGE BANNER — animated mesh gradient ── */
+.fh-page-banner {
+  background: linear-gradient(135deg, #0a0a12, #0f0a1e, #0a1218);
+  background-size: 300% 300%;
+  animation: bannerMesh 10s ease infinite;
+}
+@keyframes bannerMesh {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── CATEGORY CARD POLISH ── */
+.fh-cat-card {
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+.fh-cat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(108,99,255,.0) 0%, rgba(108,99,255,.07) 100%);
+  opacity: 0;
+  transition: opacity .25s;
+  pointer-events: none;
+}
+.fh-cat-card:hover::before { opacity: 1; }
+.fh-cat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(108,99,255,.12), rgba(67,217,173,.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-size: 1.6rem;
+  transition: transform .25s ease;
+}
+.fh-cat-card:hover .fh-cat-icon { transform: scale(1.1) rotate(-4deg); }
+
+/* ── DASH STAT CARD BORDER ACCENT ── */
+.fh-dash-stat {
+  border-left: 3px solid var(--accent);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.fh-dash-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+/* ── EMPTY STATE POLISH ── */
+.fh-empty-icon { opacity: .65; filter: drop-shadow(0 4px 12px rgba(108,99,255,.15)); }
+.fh-empty-title { color: var(--ink); }
+.fh-empty-sub { color: var(--text-soft); max-width: 320px; margin-left: auto; margin-right: auto; }
+
+/* ── PANEL SUBTLE HOVER ── */
+.fh-panel { transition: box-shadow .22s ease; }
+
+/* ── TESTIMONIAL CARD POLISH ── */
+.fh-testimonial {
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+.fh-testimonial:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(108,99,255,.25);
+}
+
+/* ── STAT BAR NUMBER GRADIENT ── */
+.fh-stat-num {
+  background: linear-gradient(135deg, var(--ink) 40%, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+[data-theme="dark"] .fh-stat-num {
+  background: linear-gradient(135deg, var(--ink-light) 30%, var(--accent-3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── INPUT FOCUS GLOW ── */
+.fh-input:focus, .fh-textarea:focus, .fh-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,.12), 0 2px 8px rgba(108,99,255,.08);
+}
+
+/* ── FILTER OPTION ACTIVE DOT ── */
+.fh-filter-option.active::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ── SHIMMER SKELETON (for async loads) ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.fh-skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+/* ── BREADCRUMB SEPARATOR ── */
+.fh-breadcrumb-sep { opacity: .35; }
+
+/* ── NOTIFICATION ITEM UNREAD GLOW ── */
+.fh-notif-item.unread {
+  border-color: rgba(108,99,255,.25);
+  background: linear-gradient(135deg, rgba(108,99,255,.04), rgba(67,217,173,.02));
+  box-shadow: 0 2px 12px rgba(108,99,255,.08);
+}
+
+/* ── SELLER LEVEL BADGE GLOW (filter only — color comes from template inline style) ── */
+.seller-elite  { filter: drop-shadow(0 0 5px rgba(245,166,35,.5)); }
+.seller-top    { filter: drop-shadow(0 0 5px rgba(108,99,255,.45)); }
+.seller-rising { filter: drop-shadow(0 0 4px rgba(67,217,173,.4)); }
+
+/* ── STATUS BADGE POLISH ── */
+.status-active::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #0d7060;
+  display: inline-block;
+  margin-right: 4px;
+  animation: availPulse 2s ease-in-out infinite;
+}
+
+/* ── HERO TAG GLASS PILL ── */
+.fh-hero-tag {
+  backdrop-filter: blur(6px);
+  background: rgba(255,255,255,.06);
+}
+.fh-hero-tag:hover { background: rgba(255,255,255,.14); }
+
+/* ── FOOTER SOCIAL BUTTON ── */
+.fh-social-btn:hover {
+  background: rgba(108,99,255,.2);
+  border-color: rgba(108,99,255,.4);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* ── FADE-IN CARD ANIMATION (CSS only, no JS) ── */
+@keyframes fadeInCard {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fh-service-card { animation: fadeInCard .4s ease both; }
+.fh-service-grid .fh-service-card:nth-child(1) { animation-delay: .05s; }
+.fh-service-grid .fh-service-card:nth-child(2) { animation-delay: .10s; }
+.fh-service-grid .fh-service-card:nth-child(3) { animation-delay: .15s; }
+.fh-service-grid .fh-service-card:nth-child(4) { animation-delay: .20s; }
+.fh-service-grid .fh-service-card:nth-child(5) { animation-delay: .25s; }
+.fh-service-grid .fh-service-card:nth-child(6) { animation-delay: .30s; }
+.fh-service-grid .fh-service-card:nth-child(7) { animation-delay: .35s; }
+.fh-service-grid .fh-service-card:nth-child(8) { animation-delay: .40s; }
+
+/* ── TAG CHIP POLISH ── */
+.fh-tag-chip {
+  border: 1px solid var(--border);
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+/* ── INQUIRY BOX GLASS EFFECT ── */
+.fh-inquiry-box {
+  background: linear-gradient(135deg, rgba(108,99,255,.07), rgba(67,217,173,.04));
+  backdrop-filter: blur(2px);
+}
+
+/* ── SORT BAR BUTTON ACTIVE GRADIENT ── */
+.fh-sort-btn.active {
+  background: linear-gradient(135deg, var(--ink), #1e1e3a);
+}
+
+/* ── PANEL TITLE BORDER GRADIENT ── */
+.fh-panel-title {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 100%);
+  margin: -28px -28px 20px;
+  padding: 14px 28px 14px;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* ── MOBILE REFINEMENTS ── */
+@media (max-width: 768px) {
+  .fh-service-img-wrap { height: 170px; }
+  .btn-primary-fh { height: 44px; font-size: 14px; }
+  .fh-page-banner { padding: 24px 0 !important; }
+}

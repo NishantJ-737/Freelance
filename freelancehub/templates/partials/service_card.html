@@ -19,9 +19,9 @@
       {% endif %}
       <span class="fh-seller-name">{{ s.seller_name }}</span>
       {% if s.is_available is defined and s.is_available == 0 %}
-      <span style="font-size:10px;color:var(--accent-2);margin-left:auto;white-space:nowrap;">Busy</span>
+      <span class="fh-avail-busy" style="margin-left:auto;white-space:nowrap;">Busy</span>
       {% elif s.is_available is defined %}
-      <span style="font-size:10px;color:var(--accent-3);margin-left:auto;white-space:nowrap;">● Available</span>
+      <span class="fh-avail-online" style="margin-left:auto;white-space:nowrap;">Available</span>
       {% endif %}
     </div>
     <a href="{{ url_for('service_detail', service_id=s.id) }}" class="fh-service-title-link">

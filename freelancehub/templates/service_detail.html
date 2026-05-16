@@ -279,7 +279,7 @@
             <div>
               <a href="{{ url_for('profile', user_id=service.seller_id) }}" style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink);text-decoration:none;">{{ service.seller_name }}</a>
               <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
-                <i class="bi {{ seller_level[1] }}" style="color:{{ seller_level[2] }};font-size:12px;"></i>
+                <i class="bi {{ seller_level[1] }} {% if seller_level[0]=='Elite Pro' %}seller-elite{% elif seller_level[0]=='Top Seller' %}seller-top{% elif seller_level[0]=='Rising Talent' %}seller-rising{% endif %}" style="color:{{ seller_level[2] }};font-size:12px;"></i>
                 <span style="font-size:11px;color:{{ seller_level[2] }};font-weight:600;">{{ seller_level[0] }}</span>
               </div>
               <div style="font-size:12px;color:var(--text-soft);">{{ seller_order_count }} orders completed</div>
