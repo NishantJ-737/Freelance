@@ -56,9 +56,9 @@
     const dx = x - W * 0.5;
     const dy = y - H * 0.44;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const innerR = Math.min(W, H) * 0.22;
-    const outerR = Math.min(W, H) * 0.50;
-    return Math.min(1, Math.max(0.05, (dist - innerR) / (outerR - innerR)));
+    const innerR = Math.min(W, H) * 0.32;
+    const outerR = Math.min(W, H) * 0.62;
+    return Math.min(1, Math.max(0.0, (dist - innerR) / (outerR - innerR)));
   }
 
   function frame() {
