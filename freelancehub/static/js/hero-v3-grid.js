@@ -12,6 +12,7 @@
   const ctx = canvas.getContext('2d');
   let W = 0, H = 0, offset = 0;
   let mx = 0.5, my = 0.5;
+  let smx = 0.5, smy = 0.5; // smoothed mouse
 
   function resize() {
     const r = hero.getBoundingClientRect();
@@ -30,7 +31,7 @@
 
   // Project a world point (wx in [-1,1], depth in [0,1]) to screen coords
   function proj(wx, depth) {
-    const vp = { x: W * (0.5 + (mx - 0.5) * 0.1), y: H * (0.68 + (my - 0.5) * 0.06) };
+    const vp = { x: W * (0.5 + (smx - 0.5) * 0.1), y: H * (0.68 + (smy - 0.5) * 0.06) };
     const sc = 1 / (1 + (1 - depth) * 2.8);
     return {
       x: vp.x + wx * W * 0.7 * sc,
@@ -40,6 +41,8 @@
   }
 
   function frame(ts) {
+    smx += (mx - smx) * 0.05;
+    smy += (my - smy) * 0.05;
     ctx.clearRect(0, 0, W, H);
 
     // Vertical lines
