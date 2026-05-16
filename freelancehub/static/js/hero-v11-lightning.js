@@ -188,8 +188,14 @@
     }
   });
 
-  hero.addEventListener('mousedown', () => { held = true; });
-  hero.addEventListener('mouseup',   () => { held = false; });
+  hero.addEventListener('mousedown', e => {
+    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+      e.preventDefault(); // stop text selection starting
+    }
+    held = true;
+  });
+  hero.addEventListener('mouseup', () => { held = false; });
+  hero.addEventListener('selectstart', e => { e.preventDefault(); });
   hero.addEventListener('mouseleave', () => { mx = -1; my = -1; held = false; });
 
   hero.addEventListener('mousemove', e => {
